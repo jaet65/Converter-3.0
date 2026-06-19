@@ -22,3 +22,8 @@ dist_temp/
 .coverage
 htmlcov/
 temp_stuff/
+
+# Support
+Template/
+Sesiones_Lander/
+

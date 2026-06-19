@@ -10,6 +10,7 @@ import threading
 import subprocess # Para abrir la carpeta
 import unicodedata
 import sys
+import customtkinter as ctk
 
 
 def get_db_params():
@@ -450,167 +451,86 @@ def run_extraction(fecha_inicio, fecha_fin, log_callback, progress_callback, inc
             conn.close()
             log_callback("\nConexión a la base de datos cerrada.")
 
-class App:
-    def __init__(self, root):
-        # Dimensiones de la ventana
-        window_width = 950
-        window_height = 680
-
-        # Dimensiones de la pantalla
-        screen_width = root.winfo_screenwidth()
-        screen_height = root.winfo_screenheight()-50
-
-        #Centro de pantalla
-        center_x = int((screen_width - window_width) / 2)
-        center_y = int((screen_height - window_height) / 2)
-
-        self.root = root
-        root.title("Report Downloader")
-        
-        try:
-            base_path = getattr(sys, '_MEIPASS', os.path.dirname(os.path.abspath(__file__)))
-            icon_path = os.path.join(base_path, 'LanderDown.ico')
-            root.iconbitmap(icon_path)
-        except Exception as e:
-            print(f"No se pudo cargar el ícono: {e}")
-        
-        root.geometry(f"{window_width}x{window_height}+{center_x}+{center_y}")
-        root.minsize(window_width, window_height)
-        
-        # Tema oscuro moderno
-        style = ttk.Style(root)
-        style.theme_use('clam')
-        
-        bg_color = "#121212"
-        card_color = "#1f2937"
-        accent_color = "#38bdf8"
-        accent_light = "#0f172a"
-        text_color = "#e2e8f0"
-        secondary_color = "#94a3b8"
-        border_color = "#334155"
-        input_bg = "#0f172a"
-        button_bg = "#2563eb"
-        button_hover = "#1d4ed8"
-        secondary_button_bg = "#334155"
-        progress_trough = "#334155"
-        
-        root.configure(bg=bg_color)
-        style.configure('App.TFrame', background=bg_color)
-        style.configure('Card.TFrame', background=card_color, relief='flat', borderwidth=1)
-        style.configure('Card.TLabelframe', background=card_color, foreground=text_color, borderwidth=1, relief='flat')
-        style.configure('Card.TLabelframe.Label', background=card_color, foreground=accent_color, font=('Segoe UI', 11, 'bold'))
-        style.configure('Header.TLabel', background=bg_color, foreground=accent_color, font=('Segoe UI', 16, 'bold'))
-        style.configure('SubHeader.TLabel', background=bg_color, foreground=secondary_color, font=('Segoe UI', 10))
-        style.configure('Section.TLabel', background=card_color, foreground=text_color, font=('Segoe UI', 10, 'bold'))
-        style.configure('CardLabel.TLabel', background=card_color, foreground=secondary_color, font=('Segoe UI', 10))
-        style.configure('Accent.TButton', font=('Segoe UI', 10, 'bold'), foreground='white', background=button_bg, borderwidth=0, padding=10)
-        style.configure('Secondary.TButton', font=('Segoe UI', 10), foreground=text_color, background=secondary_button_bg, borderwidth=0, padding=10)
-        style.map('Accent.TButton', background=[('active', button_hover), ('pressed', '#1e40af')])
-        style.map('Secondary.TButton', background=[('active', '#475569'), ('pressed', '#334155')])
-        style.configure('TCheckbutton', background=bg_color, foreground=text_color, font=('Segoe UI', 10))
-        style.configure('TProgressbar', troughcolor=progress_trough, background=accent_color, thickness=18)
-        style.configure('TLabel', background=bg_color, foreground=text_color, font=('Segoe UI', 10))
-        style.configure('TEntry', fieldbackground=input_bg, background=input_bg, foreground=text_color, insertcolor=text_color)
-        style.configure('TMenubutton', background=input_bg, foreground=text_color)
-        style.configure('Vertical.TScrollbar', background=card_color, troughcolor=card_color, bordercolor=card_color)
+class DataApp(ctk.CTkFrame):
+    def __init__(self, master, **kwargs):
+        super().__init__(master, fg_color="transparent", **kwargs)
+        self.root = self
         
         # Cargar configuración de usuario
         user_settings = load_user_settings()
 
-        # Encabezado
-        header_frame = ttk.Frame(root, style='App.TFrame', padding=(24, 18, 24, 10))
-        header_frame.pack(fill=tk.X)
-        ttk.Label(header_frame, text="Report Downloader", style='Header.TLabel').pack(anchor='w')
-        ttk.Label(header_frame, text="Verifica conexión, selecciona fechas y genera tus descargas en CSV.", style='SubHeader.TLabel').pack(anchor='w', pady=(6, 0))
-
-        # Contenido principal
-        main_frame = ttk.Frame(root, style='App.TFrame', padding=(24, 0, 24, 8))
-        main_frame.pack(fill=tk.BOTH, expand=True)
-
-        # Barra de estado inferior
-        status_bar_frame = ttk.Frame(root, style='App.TFrame', padding=(24, 0, 24, 8))
-        status_bar_frame.pack(side=tk.BOTTOM, fill=tk.X)
-
-        self.status_var = tk.StringVar(value='Listo')
-        status_label = ttk.Label(status_bar_frame, textvariable=self.status_var, style='SubHeader.TLabel')
-        status_label.pack(side=tk.LEFT)
-
-        version = get_app_version()
-        build_date = get_build_date()
-        version_text = f"v{version} ({build_date})" if build_date else f"v{version}"
-        version_label = ttk.Label(status_bar_frame, text=version_text, style='SubHeader.TLabel')
-        version_label.pack(side=tk.RIGHT)
-        main_frame.columnconfigure(0, weight=0)
-        main_frame.columnconfigure(1, weight=1)
-
-        # Panel izquierdo de controles
-        left_panel = ttk.Frame(main_frame, style='Card.TFrame', padding=20)
-        left_panel.grid(row=0, column=0, sticky='nsw', padx=(0, 12), pady=(0, 5))
-        left_panel.columnconfigure(0, weight=1)
-
-        # Panel derecho de log
-        right_panel = ttk.Frame(main_frame, style='Card.TFrame', padding=20)
-        right_panel.grid(row=0, column=1, sticky='nsew', pady=(0, 5))
-        right_panel.columnconfigure(0, weight=1)
-        right_panel.rowconfigure(2, weight=1)
-
-        # Sección de fechas
-        dates_box = ttk.LabelFrame(left_panel, text='📅 Fechas', style='Card.TLabelframe', padding=16)
-        dates_box.grid(row=0, column=0, sticky='ew', pady=(0, 12))
-        dates_box.columnconfigure(0, weight=1)
-        dates_box.columnconfigure(1, weight=0)
-
-        ttk.Label(dates_box, text='Fecha de Inicio', style='Section.TLabel').grid(row=0, column=0, sticky='w')
-        inicio_frame = ttk.Frame(dates_box, style='Card.TFrame')
-        inicio_frame.grid(row=1, column=0, columnspan=2, sticky='ew', pady=(6, 10))
-        self.fecha_inicio_entry = DateEntry(inicio_frame, width=16, background=accent_color, foreground='white', borderwidth=2, date_pattern='y-mm-dd', todaybackground='#10b981', todayforeground='white')
-        self.fecha_inicio_entry.set_date(user_settings['last_start_date'])
-        self.fecha_inicio_entry.pack(side=tk.LEFT, padx=(0, 8))
-        ttk.Button(inicio_frame, text='Hoy', command=self.set_today_start, style='Secondary.TButton', width=8).pack(side=tk.LEFT)
-
-        ttk.Label(dates_box, text='Fecha de Fin', style='Section.TLabel').grid(row=2, column=0, sticky='w')
-        fin_frame = ttk.Frame(dates_box, style='Card.TFrame')
-        fin_frame.grid(row=3, column=0, columnspan=2, sticky='ew', pady=(6, 0))
-        self.fecha_fin_entry = DateEntry(fin_frame, width=16, background=accent_color, foreground='white', borderwidth=2, date_pattern='y-mm-dd', todaybackground='#10b981', todayforeground='white')
-        self.fecha_fin_entry.set_date(user_settings['last_end_date'])
-        self.fecha_fin_entry.pack(side=tk.LEFT, padx=(0, 8))
-        ttk.Button(fin_frame, text='Hoy', command=self.set_today_end, style='Secondary.TButton', width=8).pack(side=tk.LEFT)
-
-        # Sección de opciones
-        options_box = ttk.LabelFrame(left_panel, text='⚙️ Opciones', style='Card.TLabelframe', padding=16)
-        options_box.grid(row=1, column=0, sticky='ew', pady=(0, 12))
-        self.include_anonymous_var = tk.BooleanVar(value=(user_settings['include_anonymous'] == 'true'))
-        ttk.Checkbutton(options_box, text='Incluir anónimos', variable=self.include_anonymous_var).grid(row=0, column=0, sticky='w', pady=4)
-        self.clean_folder_var = tk.BooleanVar(value=(user_settings['clean_folder'] == 'true'))
-        ttk.Checkbutton(options_box, text='Limpiar carpeta antes de extraer', variable=self.clean_folder_var).grid(row=1, column=0, sticky='w', pady=4)
-
-        # Sección de acciones
-        actions_box = ttk.LabelFrame(left_panel, text='🎯 Acciones', style='Card.TLabelframe', padding=16)
-        actions_box.grid(row=2, column=0, sticky='ew')
-        self.check_button = ttk.Button(actions_box, text='Verificar Conexión', command=self.check_connection_thread, style='Accent.TButton')
-        self.check_button.pack(fill=tk.X, pady=(0, 10))
-        self.start_button = ttk.Button(actions_box, text='Iniciar Extracción', command=self.start_extraction_thread, style='Accent.TButton')
-        self.start_button.pack(fill=tk.X, pady=(0, 10))
-        self.open_folder_button = ttk.Button(actions_box, text='Abrir Carpeta', command=self.open_download_folder, state=tk.DISABLED, style='Accent.TButton')
-        # El botón permanece oculto hasta que haya una extracción completada
-
-
-
-        # Panel derecho: log y progreso
-        ttk.Label(right_panel, text='📝 Progreso y Registro', style='Section.TLabel').grid(row=0, column=0, sticky='w')
-        self.progress_bar = ttk.Progressbar(right_panel, orient='horizontal', mode='determinate')
-        self.progress_bar.grid(row=1, column=0, sticky='ew', pady=(10, 18))
-        self.log_text = scrolledtext.ScrolledText(right_panel, wrap=tk.WORD, state=tk.DISABLED, font=('Segoe UI', 10), background='#0f172a', foreground=text_color, insertbackground=text_color, relief='flat', borderwidth=0)
-        self.log_text.grid(row=2, column=0, sticky='nsew')
-        # Configurar tag para mensajes de error en rojo
-        self.log_text.tag_configure('error', foreground='#f87171', font=('Segoe UI', 10, 'bold'))
+        # Layout principal
+        self.grid_columnconfigure(0, weight=1)
+        self.grid_rowconfigure(0, weight=1)
         
-        # Ajustar tamaño del logo de la sección derecha
-        right_panel.rowconfigure(2, weight=1)
+        main_frame = ctk.CTkFrame(self, fg_color="transparent")
+        main_frame.grid(row=0, column=0, sticky="nsew", padx=20, pady=20)
+        main_frame.grid_columnconfigure(0, weight=0)
+        main_frame.grid_columnconfigure(1, weight=1)
+        main_frame.grid_rowconfigure(0, weight=1)
+        
+        # --- Panel Izquierdo ---
+        left_panel = ctk.CTkFrame(main_frame, corner_radius=10)
+        left_panel.grid(row=0, column=0, sticky='nsew', padx=(0, 20))
+        left_panel.grid_columnconfigure(0, weight=1)
+        
+        # Fechas
+        ctk.CTkLabel(left_panel, text="Fechas", font=ctk.CTkFont(weight="bold")).grid(row=0, column=0, pady=(15, 10), padx=20, sticky="w")
+        
+        ctk.CTkLabel(left_panel, text="Fecha de Inicio:").grid(row=1, column=0, sticky="w", padx=20)
+        
+        inicio_frame = ctk.CTkFrame(left_panel, fg_color="transparent")
+        inicio_frame.grid(row=2, column=0, sticky="ew", padx=20, pady=(0, 10))
+        self.fecha_inicio_entry = DateEntry(inicio_frame, width=12, background='#1f538d', foreground='white', borderwidth=0, date_pattern='y-mm-dd')
+        self.fecha_inicio_entry.set_date(user_settings['last_start_date'])
+        self.fecha_inicio_entry.pack(side=tk.LEFT, padx=(0, 10))
+        ctk.CTkButton(inicio_frame, text="Hoy", width=60, command=self.set_today_start).pack(side=tk.LEFT)
 
-        # Separador estético
-        separator = ttk.Separator(main_frame, orient='horizontal')
-        separator.grid(row=1, column=0, columnspan=2, sticky='ew', pady=(8, 0))
+        ctk.CTkLabel(left_panel, text="Fecha de Fin:").grid(row=3, column=0, sticky="w", padx=20)
+        
+        fin_frame = ctk.CTkFrame(left_panel, fg_color="transparent")
+        fin_frame.grid(row=4, column=0, sticky="ew", padx=20, pady=(0, 15))
+        self.fecha_fin_entry = DateEntry(fin_frame, width=12, background='#1f538d', foreground='white', borderwidth=0, date_pattern='y-mm-dd')
+        self.fecha_fin_entry.set_date(user_settings['last_end_date'])
+        self.fecha_fin_entry.pack(side=tk.LEFT, padx=(0, 10))
+        ctk.CTkButton(fin_frame, text="Hoy", width=60, command=self.set_today_end).pack(side=tk.LEFT)
+        
+        # Opciones
+        ctk.CTkLabel(left_panel, text="Opciones", font=ctk.CTkFont(weight="bold")).grid(row=5, column=0, pady=(10, 10), padx=20, sticky="w")
+        
+        self.include_anonymous_var = tk.BooleanVar(value=(user_settings['include_anonymous'] == 'true'))
+        ctk.CTkCheckBox(left_panel, text="Incluir anónimos", variable=self.include_anonymous_var).grid(row=6, column=0, sticky="w", padx=20, pady=5)
+        
+        self.clean_folder_var = tk.BooleanVar(value=(user_settings['clean_folder'] == 'true'))
+        ctk.CTkCheckBox(left_panel, text="Limpiar carpeta antes de extraer", variable=self.clean_folder_var).grid(row=7, column=0, sticky="w", padx=20, pady=5)
+        
+        # Acciones
+        ctk.CTkLabel(left_panel, text="Acciones", font=ctk.CTkFont(weight="bold")).grid(row=8, column=0, pady=(15, 10), padx=20, sticky="w")
+        
+        self.check_button = ctk.CTkButton(left_panel, text="Verificar Conexión", command=self.check_connection_thread)
+        self.check_button.grid(row=9, column=0, sticky="ew", padx=20, pady=5)
+        
+        self.start_button = ctk.CTkButton(left_panel, text="Iniciar Extracción", command=self.start_extraction_thread)
+        self.start_button.grid(row=10, column=0, sticky="ew", padx=20, pady=5)
+        
+        self.open_folder_button = ctk.CTkButton(left_panel, text="Abrir Carpeta", command=self.open_download_folder, state="disabled")
+        self.open_folder_button.grid(row=11, column=0, sticky="ew", padx=20, pady=(5, 20))
+        self.open_folder_button.grid_remove() # Ocultar inicialmente
+        
+        # --- Panel Derecho ---
+        right_panel = ctk.CTkFrame(main_frame, fg_color="transparent")
+        right_panel.grid(row=0, column=1, sticky='nsew')
+        right_panel.grid_columnconfigure(0, weight=1)
+        right_panel.grid_rowconfigure(2, weight=1)
+        
+        ctk.CTkLabel(right_panel, text="Progreso y Registro", font=ctk.CTkFont(weight="bold")).grid(row=0, column=0, sticky="w", pady=(0, 10))
+        
+        self.progress_bar = ctk.CTkProgressBar(right_panel)
+        self.progress_bar.set(0)
+        self.progress_bar.grid(row=1, column=0, sticky="ew", pady=(0, 10))
+        
+        self.log_text = ctk.CTkTextbox(right_panel, font=("Consolas", 13), state="disabled", corner_radius=8)
+        self.log_text.grid(row=2, column=0, sticky="nsew")
 
     def set_today_start(self):
         """Establece la fecha de inicio a hoy."""
@@ -625,20 +545,20 @@ class App:
         self.root.after(0, self._log_message, message)
 
     def _log_message(self, message):
-        self.log_text.config(state=tk.NORMAL)
-        self.log_text.insert(tk.END, message + "\n")
-        self.log_text.see(tk.END)
-        self.log_text.config(state=tk.DISABLED)
+        self.log_text.configure(state="normal")
+        self.log_text.insert("end", message + "\n")
+        self.log_text.see("end")
+        self.log_text.configure(state="disabled")
 
     def log_error(self, message):
         """Añade un mensaje de error (rojo) al log de forma segura desde cualquier hilo."""
         self.root.after(0, self._log_error_message, message)
 
     def _log_error_message(self, message):
-        self.log_text.config(state=tk.NORMAL)
-        self.log_text.insert(tk.END, message + "\n", 'error')
-        self.log_text.see(tk.END)
-        self.log_text.config(state=tk.DISABLED)
+        self.log_text.configure(state="normal")
+        self.log_text.insert("end", "[ERROR] " + message + "\n")
+        self.log_text.see("end")
+        self.log_text.configure(state="disabled")
 
     def show_damaged_alert(self, sesiones_danadas):
         """Muestra una ventana de alerta con las sesiones omitidas."""
@@ -654,7 +574,10 @@ class App:
         self.root.after(0, self._update_progress_bar, value)
 
     def _update_progress_bar(self, value):
-        self.progress_bar['value'] = value
+        if value > 0:
+            self.progress_bar.set(value / 100.0)
+        else:
+            self.progress_bar.set(0)
 
     def open_download_folder(self):
         """Abre la carpeta de descargas en el explorador de archivos del sistema."""
@@ -691,15 +614,14 @@ class App:
 
     def start_extraction_thread(self):
         """Inicia el proceso de extracción en un hilo separado."""
-        self.start_button.config(state=tk.DISABLED)
-        self.check_button.config(state=tk.DISABLED)
-        self.open_folder_button.config(state=tk.DISABLED)
-        self.status_var.set('Extrayendo sesiones...')
-        self.log_text.config(state=tk.NORMAL)
+        self.start_button.configure(state="disabled")
+        self.check_button.configure(state="disabled")
+        self.open_folder_button.configure(state="disabled")
+        self.log_text.configure(state="normal")
         # Limpiar log y barra de progreso
-        self.progress_bar['value'] = 0
-        self.log_text.delete('1.0', tk.END)
-        self.log_text.config(state=tk.DISABLED)
+        self.progress_bar.set(0)
+        self.log_text.delete('1.0', "end")
+        self.log_text.configure(state="disabled")
 
         fecha_inicio = self.fecha_inicio_entry.get_date()
         fecha_fin = self.fecha_fin_entry.get_date()
@@ -716,16 +638,14 @@ class App:
                 self.clean_download_folder()
             else:
                 self.log("Limpieza cancelada por el usuario.")
-                self.status_var.set('Listo')
-                self.start_button.config(state=tk.NORMAL)
-                self.check_button.config(state=tk.NORMAL)
+                self.start_button.configure(state="normal")
+                self.check_button.configure(state="normal")
                 return
 
         if fecha_inicio > fecha_fin:
             self.log("La fecha de inicio no puede ser posterior a la fecha de fin.")
-            self.status_var.set('Error en fechas')
-            self.start_button.config(state=tk.NORMAL)
-            self.check_button.config(state=tk.NORMAL)
+            self.start_button.configure(state="normal")
+            self.check_button.configure(state="normal")
             return
 
         thread = threading.Thread(target=self.run_extraction_task, args=(fecha_inicio, fecha_fin, include_anonymous), daemon=True)
@@ -744,14 +664,13 @@ class App:
 
     def check_connection_thread(self):
         """Inicia la verificación de conexión en un hilo separado."""
-        self.check_button.config(state=tk.DISABLED)
-        self.start_button.config(state=tk.DISABLED)
-        self.status_var.set('Verificando conexión...')
-        self.log_text.config(state=tk.NORMAL)
+        self.check_button.configure(state="disabled")
+        self.start_button.configure(state="disabled")
+        self.log_text.configure(state="normal")
         # Limpiar log y barra de progreso
-        self.progress_bar['value'] = 0
-        self.log_text.delete('1.0', tk.END)
-        self.log_text.config(state=tk.DISABLED)
+        self.progress_bar.set(0)
+        self.log_text.delete('1.0', "end")
+        self.log_text.configure(state="disabled")
 
         fecha_inicio = self.fecha_inicio_entry.get_date()
         fecha_fin = self.fecha_fin_entry.get_date()
@@ -759,9 +678,8 @@ class App:
 
         if fecha_inicio > fecha_fin:
             self.log("La fecha de inicio no puede ser posterior a la fecha de fin.")
-            self.status_var.set('Error en fechas')
-            self.check_button.config(state=tk.NORMAL)
-            self.start_button.config(state=tk.NORMAL)
+            self.check_button.configure(state="normal")
+            self.start_button.configure(state="normal")
             return
 
         thread = threading.Thread(target=self.run_check_connection_task, args=(fecha_inicio, fecha_fin, include_anonymous), daemon=True)
@@ -775,18 +693,16 @@ class App:
 
     def on_check_complete(self):
         """Se ejecuta cuando la verificación termina para reactivar los botones."""
-        self.check_button.config(state=tk.NORMAL)
-        self.start_button.config(state=tk.NORMAL)
-        self.status_var.set('Verificación completada')
+        self.check_button.configure(state="normal")
+        self.start_button.configure(state="normal")
 
     def on_extraction_complete(self):
         """Se ejecuta cuando la extracción termina para reactivar el botón."""
-        self.start_button.config(state=tk.NORMAL)
-        self.check_button.config(state=tk.NORMAL)
+        self.start_button.configure(state="normal")
+        self.check_button.configure(state="normal")
         if not self.open_folder_button.winfo_ismapped():
-            self.open_folder_button.pack(fill=tk.X)
-        self.open_folder_button.config(state=tk.NORMAL) # Activar al finalizar
-        self.status_var.set('Extracción completa')
+            self.open_folder_button.grid()
+        self.open_folder_button.configure(state="normal") # Activar al finalizar
 def set_taskbar_icon():
     """Establece el ícono de la barra de tareas en Windows."""
     if sys.platform == "win32":
@@ -808,7 +724,8 @@ if __name__ == "__main__":
         pass
 
     root = tk.Tk()
-    app = App(root)
+    app = DataApp(root)
+    app.pack(fill="both", expand=True)
     
     # Cerrar el splash screen
     try:

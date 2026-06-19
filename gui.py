@@ -12,6 +12,7 @@ import sys
 import subprocess
 from file_operations import procesar_un_archivo
 from app import ImporterApp
+from streamdb import DataApp
 from config_utils import load_config, save_config
 
 class ConvertidorApp(ctk.CTk):
@@ -30,7 +31,7 @@ class ConvertidorApp(ctk.CTk):
         center_x = int((screen_width - window_width) / 2)
         center_y = int((screen_height - window_height) / 2)-30
 
-        self.title("Convertidor de Reportes Lander/TrackSIM")
+        self.title("TrackSIM Report Tools")
         self.geometry(f"{window_width}x{window_height}+{center_x}+{center_y}")
         self.minsize(window_width, window_height)
 
@@ -87,8 +88,13 @@ class ConvertidorApp(ctk.CTk):
         self.tab_view = ctk.CTkTabview(self, corner_radius=8)
         self.tab_view.grid(row=0, column=0, padx=20, pady=20, sticky="nsew")
         
+        data_tab = self.tab_view.add("Data")
         config_tab = self.tab_view.add("Convertir")
         importer_tab = self.tab_view.add("Importar")
+
+        # --- Pestaña Data ---
+        data_frame = DataApp(master=data_tab)
+        data_frame.pack(fill="both", expand=True)
 
         # --- Pestaña de Configuración ---
         config_tab.grid_columnconfigure(0, weight=1)

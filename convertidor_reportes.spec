@@ -5,7 +5,12 @@ a = Analysis(
     ['main.py'],
     pathex=[],
     binaries=[],
-    datas=[('logo.png', '.'), ('Icon.ico', '.'), ('config.json', '.')],
+    datas=[
+        ('logo.png', '.'),
+        ('Icon.ico', '.'),
+        ('config.json', '.'),
+        ('config.ini', '.')
+        ],
     hiddenimports=['reportlab'],
     hookspath=[],
     hooksconfig={},
@@ -22,7 +27,7 @@ exe = EXE(
     a.binaries,
     a.datas,
     [],
-    name='Converter TrackSIM',
+    name='TrackSIM Tools',
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,
