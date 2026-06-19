@@ -1,19 +1,36 @@
-# Convertidor de Reportes
+# TrackSIM Tools
 
-Este proyecto es una herramienta de escritorio para convertir reportes a otro formato.
+**TrackSIM Tools** es una suite completa de escritorio diseñada para gestionar, extraer y convertir reportes generados por simuladores. Con una interfaz moderna y oscura construida sobre `CustomTkinter`, la aplicación centraliza varias herramientas en un solo lugar.
 
-## Instalación
+## Características Principales
 
-Para utilizar esta herramienta, puedes descargar el archivo ejecutable `Converter TrackSIM.exe` desde la sección de [releases](https://github.com/tu-usuario/tu-repositorio/releases). No se necesita instalación, solo ejecuta el archivo.
+La aplicación está dividida en tres pestañas principales:
 
-## Uso
+1. **Convertir:**
+   - Permite seleccionar una carpeta de origen (con archivos `.csv`) y una carpeta de destino.
+   - Convierte los reportes a formatos **Excel** y **PDF**.
+   - Opción para limpiar de forma segura las carpetas de salida (`Converted` y `MinorReport`) antes de procesar.
+   - Panel de Progreso y visualización de Log en tiempo real.
 
-1.  Abre la aplicación haciendo doble clic en `Converter TrackSIM.exe`.
-2.  Sigue las instrucciones en la interfaz de la aplicación para convertir tus reportes.
+2. **Importar:**
+   - Facilita la importación y validación de plantillas o sesiones, actualizando la base de datos de los reportes.
+   - Generación de rutas y reestructuración de archivos del sistema.
 
-## Building
+3. **Data:**
+   - Herramienta para conectarse directamente a la base de datos PostgreSQL.
+   - Permite consultar y descargar sesiones en un rango de fechas especificado.
+   - Soporte para incluir o excluir usuarios anónimos.
 
-Si deseas compilar la aplicación desde el código fuente, sigue estos pasos:
+## Instalación y Uso
+
+Para utilizar esta herramienta de forma directa, descarga el archivo ejecutable `TrackSIM Tools.exe` (cuando esté disponible en releases) y ejecútalo. No se necesita instalación adicional.
+
+1.  Abre la aplicación haciendo doble clic en `TrackSIM Tools.exe`.
+2.  Navega entre las pestañas según lo que necesites realizar y sigue las instrucciones en pantalla.
+
+## Entorno de Desarrollo (Building)
+
+Si deseas compilar la aplicación desde el código fuente o hacer modificaciones:
 
 1.  Clona el repositorio:
     ```bash
@@ -26,19 +43,18 @@ Si deseas compilar la aplicación desde el código fuente, sigue estos pasos:
     python -m venv venv
     .\venv\Scripts\Activate.ps1
     pip install -r requirements.txt
+    ```
 
-    Abrir la versión de desarrollo:
+3.  Abrir la versión de desarrollo:
+    ```bash
     python main.py
     ```
 
-3.  Construye el ejecutable con PyInstaller usando el archivo de especificación generado:
+4.  Construye el ejecutable final:
     ```bash
     python build.py 
     ```
-
-    Esto crear un ejecutable de acuerdo a la configuracion en convertidor_reportes.spec
-
-    ```
+    Este comando ejecuta PyInstaller bajo el archivo `convertidor_reportes.spec`, generando la carpeta `dist/` con el nuevo `TrackSIM Tools.exe` listo para distribuir.
 
 ## Licencia
 

@@ -14,6 +14,7 @@ from file_operations import procesar_un_archivo
 from app import ImporterApp
 from streamdb import DataApp
 from config_utils import load_config, save_config
+import shutil
 
 class ConvertidorApp(ctk.CTk):
     def __init__(self):
@@ -51,6 +52,7 @@ class ConvertidorApp(ctk.CTk):
 
         self.convert_to_pdf = BooleanVar(value=True)
         self.convert_to_excel = BooleanVar(value=True)
+        self.limpiar_salida = BooleanVar(value=False)
         
         # Spinner for converter
         self.converter_spinner_activo = False
@@ -67,6 +69,7 @@ class ConvertidorApp(ctk.CTk):
         self.ruta_destino = config.get("ruta_destino", "")
         self.convert_to_pdf.set(config.get("convert_to_pdf", True))
         self.convert_to_excel.set(config.get("convert_to_excel", True))
+        self.limpiar_salida.set(config.get("limpiar_salida", False))
         self.app_version = config.get("version", "")
         self.app_build_date = config.get("build_date", "")
 
@@ -77,6 +80,7 @@ class ConvertidorApp(ctk.CTk):
                 "ruta_destino": self.entry_destino.get(),
                 "convert_to_pdf": self.convert_to_pdf.get(),
                 "convert_to_excel": self.convert_to_excel.get(),
+                "limpiar_salida": self.limpiar_salida.get(),
             })
         except OSError as e:
             self.log_queue.put({'type':'log', 'msg':f"Error al guardar la configuración: {e}", 'is_error':True})
@@ -101,18 +105,18 @@ class ConvertidorApp(ctk.CTk):
         config_tab.grid_rowconfigure(3, weight=1) # Give weight to the log area row
 
         frame_rutas = ctk.CTkFrame(config_tab, corner_radius=10)
-        frame_rutas.grid(row=0, column=0, padx=20, pady=20, sticky="ew")
+        frame_rutas.grid(row=0, column=0, padx=20, pady=10, sticky="ew")
         frame_rutas.grid_columnconfigure(1, weight=1)
 
-        ctk.CTkLabel(frame_rutas, text="Carpeta Origen:").grid(row=0, column=0, padx=15, pady=15, sticky="w")
+        ctk.CTkLabel(frame_rutas, text="Carpeta Origen:").grid(row=0, column=0, padx=15, pady=10, sticky="w")
         self.entry_origen = ctk.CTkEntry(frame_rutas, placeholder_text="Selecciona la carpeta con los reportes...")
-        self.entry_origen.grid(row=0, column=1, padx=10, pady=15, sticky="ew")
-        ctk.CTkButton(frame_rutas, text="Seleccionar", width=120, command=lambda: self.seleccionar_ruta('origen')).grid(row=0, column=2, padx=15, pady=15)
+        self.entry_origen.grid(row=0, column=1, padx=10, pady=10, sticky="ew")
+        ctk.CTkButton(frame_rutas, text="Seleccionar", width=120, command=lambda: self.seleccionar_ruta('origen')).grid(row=0, column=2, padx=15, pady=10)
 
-        ctk.CTkLabel(frame_rutas, text="Carpeta Destino:").grid(row=1, column=0, padx=15, pady=15, sticky="w")
+        ctk.CTkLabel(frame_rutas, text="Carpeta Destino:").grid(row=1, column=0, padx=15, pady=10, sticky="w")
         self.entry_destino = ctk.CTkEntry(frame_rutas, placeholder_text="Selecciona dónde guardar los archivos convertidos...")
-        self.entry_destino.grid(row=1, column=1, padx=10, pady=15, sticky="ew")
-        ctk.CTkButton(frame_rutas, text="Seleccionar", width=120, command=lambda: self.seleccionar_ruta('destino')).grid(row=1, column=2, padx=15, pady=15)
+        self.entry_destino.grid(row=1, column=1, padx=10, pady=10, sticky="ew")
+        ctk.CTkButton(frame_rutas, text="Seleccionar", width=120, command=lambda: self.seleccionar_ruta('destino')).grid(row=1, column=2, padx=15, pady=10)
 
         self.entry_origen.insert(0, self.ruta_origen)
         self.entry_destino.insert(0, self.ruta_destino)
@@ -123,29 +127,30 @@ class ConvertidorApp(ctk.CTk):
 
         frame_opts = ctk.CTkFrame(bottom_frame)
         frame_opts.grid(row=0, column=0, sticky="nsew", padx=(0, 10))
-        frame_opts.grid_columnconfigure(0, weight=1)
-        ctk.CTkLabel(frame_opts, text="Formatos de Salida", font=ctk.CTkFont(weight="bold")).grid(row=0, column=0, padx=20, pady=(15, 10))
-        ctk.CTkCheckBox(frame_opts, text="Convertir a PDF", variable=self.convert_to_pdf, command=self.guardar_configuracion).grid(row=1, column=0, padx=20, pady=10, sticky="w")
-        ctk.CTkCheckBox(frame_opts, text="Convertir a Excel", variable=self.convert_to_excel, command=self.guardar_configuracion).grid(row=2, column=0, padx=20, pady=10, sticky="w")
+        frame_opts.grid_columnconfigure((0, 1), weight=1)
+        ctk.CTkLabel(frame_opts, text="Opciones de Procesamiento", font=ctk.CTkFont(weight="bold")).grid(row=0, column=0, columnspan=2, padx=20, pady=(10, 5), sticky="w")
+        ctk.CTkCheckBox(frame_opts, text="Convertir a PDF", variable=self.convert_to_pdf, command=self.guardar_configuracion).grid(row=1, column=0, padx=20, pady=5, sticky="w")
+        ctk.CTkCheckBox(frame_opts, text="Convertir a Excel", variable=self.convert_to_excel, command=self.guardar_configuracion).grid(row=2, column=0, padx=20, pady=(5, 10), sticky="w")
+        ctk.CTkCheckBox(frame_opts, text="Limpiar carpeta de salida", variable=self.limpiar_salida, command=self.guardar_configuracion).grid(row=1, column=1, rowspan=2, padx=10, pady=5, sticky="w")
         
         progress_frame = ctk.CTkFrame(bottom_frame)
         progress_frame.grid(row=0, column=1, sticky="nsew", padx=(10, 0))
         progress_frame.grid_columnconfigure(0, weight=1)
-        ctk.CTkLabel(progress_frame, text="Progreso", font=ctk.CTkFont(weight="bold")).grid(row=0, column=0, padx=20, pady=(15, 10))
+        ctk.CTkLabel(progress_frame, text="Progreso", font=ctk.CTkFont(weight="bold")).grid(row=0, column=0, padx=20, pady=(10, 5))
         self.lbl_status = ctk.CTkLabel(progress_frame, text="Listo para iniciar.", text_color="gray60")
-        self.lbl_status.grid(row=1, column=0, padx=20, pady=(0, 10), sticky="w")
+        self.lbl_status.grid(row=1, column=0, padx=20, pady=(0, 5), sticky="w")
         self.progress = ctk.CTkProgressBar(progress_frame)
         self.progress.set(0)
-        self.progress.grid(row=2, column=0, padx=20, pady=(0, 20), sticky="ew")
+        self.progress.grid(row=2, column=0, padx=20, pady=(0, 10), sticky="ew")
 
         btn_frame = ctk.CTkFrame(config_tab, fg_color="transparent")
-        btn_frame.grid(row=2, column=0, padx=20, pady=(10, 0), sticky="ew")
+        btn_frame.grid(row=2, column=0, padx=20, pady=(5, 0), sticky="ew")
         btn_frame.grid_columnconfigure(1, weight=1)
         
         self.btn_abrir_destino = ctk.CTkButton(btn_frame, text="Abrir Carpeta de Destino", command=self.abrir_carpeta_destino)
         
-        self.btn_ejecutar = ctk.CTkButton(btn_frame, text="Iniciar Proceso", command=self.iniciar_procesamiento, height=40, font=ctk.CTkFont(size=14, weight="bold"))
-        self.btn_ejecutar.grid(row=0, column=2, padx=0, pady=10)
+        self.btn_ejecutar = ctk.CTkButton(btn_frame, text="Iniciar Proceso", command=self.iniciar_procesamiento, height=35, font=ctk.CTkFont(size=14, weight="bold"))
+        self.btn_ejecutar.grid(row=0, column=2, padx=0, pady=5)
 
         # --- Pestaña de Importador ---
         importer_frame = ImporterApp(master=importer_tab, fg_color="transparent")
@@ -153,7 +158,7 @@ class ConvertidorApp(ctk.CTk):
 
         # --- Log Area within Config Tab ---
         self.log_area = ctk.CTkTextbox(config_tab, font=("Consolas", 13), state='disabled', corner_radius=8)
-        self.log_area.grid(row=3, column=0, columnspan=3, padx=20, pady=(10, 20), sticky="nsew")
+        self.log_area.grid(row=3, column=0, columnspan=3, padx=20, pady=(5, 20), sticky="nsew")
 
         # --- Version Label ---
         if self.app_version:
@@ -287,6 +292,16 @@ class ConvertidorApp(ctk.CTk):
         if not files:
             self.log_queue.put({'type':'log','msg':"No se encontraron archivos .csv recientes en la carpeta de origen.","is_error":False})
             self.log_queue.put({'type':'done','show_open_button':False}); return
+        
+        if self.limpiar_salida.get():
+            for folder in ["Converted", "MinorReport"]:
+                folder_path = os.path.join(self.ruta_destino, folder)
+                if os.path.exists(folder_path):
+                    try:
+                        shutil.rmtree(folder_path)
+                        self.log_queue.put({'type':'log','msg':f"Carpeta antigua '{folder}' eliminada.","is_error":False})
+                    except Exception as e:
+                        self.log_queue.put({'type':'log','msg':f"Error al limpiar la carpeta '{folder}': {e}","is_error":True})
         
         os.makedirs(os.path.join(self.ruta_destino, "MinorReport"), exist_ok=True)
         os.makedirs(os.path.join(self.ruta_destino, "Converted"), exist_ok=True)
