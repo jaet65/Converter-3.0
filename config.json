@@ -1,0 +1,10 @@
+{
+    "ruta_origen": "G:/Unidades compartidas/LANDER/Sesiones_Lander GEPP MORELIA",
+    "ruta_destino": "C:/Users/agraz/Downloads/Pruebas importer",
+    "convert_to_pdf": true,
+    "convert_to_excel": true,
+    "importer_folder": "C:/Users/agraz/Downloads/Pruebas importer/Converted",
+    "importer_master_file": "C:/Users/agraz/Downloads/Pruebas importer/Reporte - Avanzado - CUR-RIG-3C GEPP MOR .xlsm",
+    "version": "1.0.9",
+    "build_date": "19/06/26"
+}

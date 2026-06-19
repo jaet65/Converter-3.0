@@ -1,0 +1,24 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+.venv/
+
+# PyInstaller
+build/
+dist/
+dist_temp/
+
+# IDE
+.vscode/
+
+# Other
+*.egg-info/
+.pytest_cache/
+.coverage
+htmlcov/
+temp_stuff/
