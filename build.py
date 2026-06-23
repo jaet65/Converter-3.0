@@ -1,3 +1,4 @@
+# Build script for the Converter 3.0 application
 import json
 import subprocess
 import sys

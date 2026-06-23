@@ -1,3 +1,4 @@
+# Tab DATA EXTRACTION
 import psycopg2
 import csv
 import os
@@ -205,9 +206,9 @@ def run_extraction(fecha_inicio, fecha_fin, log_callback, progress_callback, inc
             id_sesion, nombre_alumno, fecha, instructor, duracion, id_ejercicio, id_aula = sesion
             nombre_alumno_limpio = slugify(nombre_alumno)
             fecha_str = fecha.strftime("%Y-%m-%d")
-            nombre_archivo = f"{carpeta_salida}/Conduccion_ID{id_sesion}_{nombre_alumno_limpio}_{fecha_str}.csv"
+            nombre_archivo = f"{carpeta_salida}/ID{id_sesion}_{nombre_alumno_limpio}_{fecha_str}.csv"
 
-            log_callback(f"({i+1}/{len(sesiones)}) Generando: {os.path.basename(nombre_archivo)}")
+            log_callback(f"({i+1}/{len(sesiones)}) {os.path.basename(nombre_archivo)}")
 
             # Actualizar la barra de progreso
             progress_value = (i + 1) / len(sesiones) * 100

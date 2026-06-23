@@ -6,20 +6,20 @@
 
 La aplicación está dividida en tres pestañas principales:
 
-1. **Convertir:**
+1. **Data:**
+   - Herramienta para conectarse directamente a la base de datos PostgreSQL.
+   - Permite consultar y descargar sesiones en un rango de fechas especificado.
+   - Soporte para incluir o excluir usuarios anónimos.
+
+2. **Convertir:**
    - Permite seleccionar una carpeta de origen (con archivos `.csv`) y una carpeta de destino.
    - Convierte los reportes a formatos **Excel** y **PDF**.
    - Opción para limpiar de forma segura las carpetas de salida (`Converted` y `MinorReport`) antes de procesar.
    - Panel de Progreso y visualización de Log en tiempo real.
 
-2. **Importar:**
+3. **Importar:**
    - Facilita la importación y validación de plantillas o sesiones, actualizando la base de datos de los reportes.
    - Generación de rutas y reestructuración de archivos del sistema.
-
-3. **Data:**
-   - Herramienta para conectarse directamente a la base de datos PostgreSQL.
-   - Permite consultar y descargar sesiones en un rango de fechas especificado.
-   - Soporte para incluir o excluir usuarios anónimos.
 
 ## Instalación y Uso
 
@@ -55,6 +55,21 @@ Si deseas compilar la aplicación desde el código fuente o hacer modificaciones
     python build.py 
     ```
     Este comando ejecuta PyInstaller bajo el archivo `convertidor_reportes.spec`, generando la carpeta `dist/` con el nuevo `TrackSIM Tools.exe` listo para distribuir.
+
+## Scripts
+1. **main.py:**
+    - Script inicial desde este se arranca el sistema
+2. **streamdb.py**
+    - TAB DATA, gestiona la descarga de la informacion de DB de Lander
+3. **gui.py**
+    - TAB CONVERTIR, Convierte los archivos .CSV a .xlsx y .pdf
+4. **app.py**
+    - TAB IMPORTAR, Copia la imformacion de los archivos .xlsx al archivo maestro .xlsm
+5. **build.py**
+    - Automatizacion para empaquetar en archivo .exe
+6. OTROS
+    - config_utils.py
+    - file_operations.py
 
 ## Licencia
 

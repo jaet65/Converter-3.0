@@ -1,3 +1,4 @@
+# Creación de la interfaz gráfica para el Convertidor de Reportes TAB Convertir
 import os
 import time
 from datetime import datetime, timedelta

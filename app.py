@@ -1,3 +1,4 @@
+# Tab IMPORTER
 import os
 import re
 import glob
@@ -628,8 +629,7 @@ def pegar_en_maestro(archivo_maestro, carpeta_reportes, log_callback=None):
                 and reporte_corresponde_hoja(meta["unidad_tipo"], nombre_hoja, sim_valores)
             ]
 
-            log(f"\n--- {nombre_hoja}: {len(columnas_maestro)} columnas "
-                f"(FileName E{FILA_FILENAME}, datos E{FILA_INICIO_DATOS}+) — "
+            log(f"\n--- {nombre_hoja}: {len(columnas_maestro)} columnas — "
                 f"{len(reportes_hoja)} reporte(s) del escenario."
             )
 
@@ -665,9 +665,8 @@ def pegar_en_maestro(archivo_maestro, carpeta_reportes, log_callback=None):
                 paso += 1
                 total_copiados += 1
                 log(
-                    f"[{nombre_hoja}] {Path(ruta).name} -> {letra_col} "
-                    f"(FileName: {col_info['fileName']}, {score:.0%}, "
-                    f"{meta['unidad_tipo']})"
+                    f">> {Path(ruta).name} -> "
+                    f"(Driver: {col_info['fileName']}, {meta['unidad_tipo']})"
 
                 )
                 if log_callback:
@@ -680,8 +679,8 @@ def pegar_en_maestro(archivo_maestro, carpeta_reportes, log_callback=None):
                 if ruta in usados:
                     continue
                 log(
-                    f"  · {Path(ruta).name} (unidad {meta['unidad_tipo']}) — "
-                    "no hubo FileName compatible en el maestro."
+                    f"  X - {Path(ruta).name}  — "
+                    "no hubo conductor compatible con el reporte."
                 )
 
         if omitted_reports:
@@ -824,7 +823,7 @@ class ImporterApp(ctk.CTkFrame):
             return True
         if "sin emparejar" in texto:
             return True
-        if "no hubo filename compatible" in texto:
+        if "no hubo conductor compatible" in texto:
             return True
         if "omitidos por errores" in texto:
             return True

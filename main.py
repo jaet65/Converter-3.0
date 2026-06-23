@@ -1,3 +1,4 @@
+# Main entry point for the application
 import multiprocessing
 import sys
 import os

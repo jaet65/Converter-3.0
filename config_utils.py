@@ -1,3 +1,4 @@
+# script to manage configuration for the Converter 3.0 application
 import json
 import os
 import sys
