@@ -5,7 +5,7 @@
     "convert_to_excel": true,
     "importer_folder": "C:/Users/agraz/Downloads/Proyectos/Converter 3.0/Template/Converted",
     "importer_master_file": "C:/Users/agraz/Downloads/Proyectos/Converter 3.0/Template/Reporte - Avanzado - CUR-RIG-3C Almex GDL .xlsm",
-    "version": "1.0.17",
-    "build_date": "23/06/26",
+    "version": "1.0.21",
+    "build_date": "24/06/26",
     "limpiar_salida": true
 }
