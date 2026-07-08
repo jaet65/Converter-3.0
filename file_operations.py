@@ -21,7 +21,7 @@ def generar_pdf_reportlab(path_pdf, df, titulo_doc):
     logo_elemento = None
     try:
         base_path = getattr(sys, '_MEIPASS', os.path.dirname(os.path.abspath(__file__)))
-        logo_path = os.path.join(base_path, 'logo.png')
+        logo_path = os.path.join(base_path, 'logo_TrackSIM.png')
         if os.path.exists(logo_path):
             logo_pil = PILImage.open(logo_path)
             logo_pil.thumbnail((120, 60))

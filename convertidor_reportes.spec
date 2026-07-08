@@ -7,6 +7,7 @@ a = Analysis(
     binaries=[],
     datas=[
         ('logo.png', '.'),
+        ('logo_TrackSIM.png', '.'),
         ('Icon.ico', '.'),
         ('config.json', '.'),
         ('config.ini', '.')
