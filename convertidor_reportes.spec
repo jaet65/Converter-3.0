@@ -28,7 +28,7 @@ exe = EXE(
     a.binaries,
     a.datas,
     [],
-    name='TrackSIM Tools',
+    name='TrackSIM_Tools',
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,
