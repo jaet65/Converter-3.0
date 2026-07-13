@@ -7,3 +7,4 @@ numpy
 pywin32>=306
 PyInstaller
 psycopg2-binary
+tkcalendar
