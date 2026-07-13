@@ -5,3 +5,4 @@ openpyxl
 customtkinter
 numpy
 pywin32>=306
+PyInstaller

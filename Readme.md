@@ -56,6 +56,33 @@ Si deseas compilar la aplicación desde el código fuente o hacer modificaciones
     ```
     Este comando ejecuta PyInstaller bajo el archivo `convertidor_reportes.spec`, generando la carpeta `dist/` con el nuevo `TrackSIM Tools.exe` listo para distribuir.
 
+## Automatización y Despliegue (CI/CD)
+
+Este proyecto utiliza GitHub Actions para automatizar el proceso de construcción y liberación de la aplicación.
+
+### Flujo de Trabajo (Workflow)
+
+El flujo de trabajo se define en el archivo `.github/workflows/release.yml` y consta de dos trabajos principales: `build` y `release`.
+
+#### 1. Construcción Automática (`build`)
+
+-   **Disparador**: Se activa automáticamente con cada `push` a la rama `main` o al crear un `tag` que comience con `v*`.
+-   **Proceso**:
+    1.  El entorno se configura en una máquina virtual con `windows-latest`.
+    2.  Se instala Python 3.9 y las dependencias del proyecto listadas en `requirements.txt`.
+    3.  Se ejecuta el script `python build.py` para compilar la aplicación con PyInstaller.
+    4.  El ejecutable resultante y otros archivos de la carpeta `dist/` se empaquetan y suben como un artefacto llamado `dist`.
+
+#### 2. Creación de Releases (`release`)
+
+-   **Disparador**: Se activa solo cuando se crea un nuevo `tag` con el formato `v*` (ej. `v1.0.25`).
+-   **Proceso**:
+    1.  Depende del trabajo `build` para asegurarse de que la construcción fue exitosa.
+    2.  Descarga el artefacto `dist` que contiene el ejecutable.
+    3.  Utiliza la herramienta `gh release create` para crear una nueva "Release" en GitHub.
+    4.  El título y el nombre de la release se basan en el nombre del `tag`.
+    5.  El archivo `dist/TrackSIM Tools.exe` se adjunta automáticamente a la release, dejándolo listo para que los usuarios lo descarguen.
+
 ## Scripts
 1. **main.py:**
     - Script inicial desde este se arranca el sistema
