@@ -22,6 +22,7 @@ dist_temp/
 .coverage
 htmlcov/
 temp_stuff/
+config.json
 
 # Support
 Template/
