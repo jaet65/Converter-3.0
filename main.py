@@ -3,6 +3,7 @@ import multiprocessing
 import sys
 import os
 import tkinter as tk
+import json
 
 
 def set_taskbar_icon():
@@ -21,6 +22,26 @@ def get_base_path():
     return getattr(sys, '_MEIPASS', os.path.dirname(os.path.abspath(__file__)))
 
 
+def obtener_version_config(base_path):
+    """
+    Lee el archivo config.json (o config) en la ruta base de la aplicación
+    y extrae la versión configurada.
+    """
+    # Intentamos buscar tanto 'config.json' como 'config' sin extensión si aplica
+    posibles_nombres = ["config.json", "config"]
+    for nombre in posibles_nombres:
+        config_path = os.path.join(base_path, nombre)
+        if os.path.exists(config_path):
+            try:
+                with open(config_path, "r", encoding="utf-8") as f:
+                    data = json.load(f)
+                    return f"v{data.get('version', '3.0')}"
+            except Exception as e:
+                print(f"No se pudo leer el archivo de configuración: {e}")
+                break
+    return "v3.0"  # Fallback si no se encuentra o hay error
+
+
 def crear_splash():
     """
     Crea y muestra un splash screen personalizado usando Tkinter puro con animaciones.
@@ -28,6 +49,7 @@ def crear_splash():
     Devuelve la ventana del splash y una función para cerrarla de forma segura de inmediato.
     """
     base_path = get_base_path()
+    version_app = obtener_version_config(base_path)  # Obtiene la versión dinámica del config
 
     splash = tk.Tk()
     splash.overrideredirect(True)          # Sin bordes ni barra de título
@@ -86,9 +108,9 @@ def crear_splash():
                                   fill=SUB_COLOR,
                                   font=("Segoe UI", 10))
 
-    # Versión
+    # Versión dinámica del config.json
     canvas.create_text(SPLASH_W - pad - 15, SPLASH_H - pad - 10,
-                       text="v3.0", fill=SUB_COLOR,
+                       text=version_app, fill=SUB_COLOR,
                        font=("Segoe UI", 8), anchor="se")
 
     # Control de estados de las animaciones
@@ -106,7 +128,7 @@ def crear_splash():
         s["dots_count"] = (s["dots_count"] + 1) % 4
         puntos = "." * s["dots_count"]
         try:
-            canvas.itemconfig(sub_text, text=f"Iniciando aplicación...{puntos}")
+            canvas.itemconfig(sub_text, text=f"Iniciando aplicación{puntos}")
             s["after_id_dots"] = splash.after(400, animar_puntos)
         except Exception:
             pass
