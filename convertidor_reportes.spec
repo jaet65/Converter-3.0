@@ -1,6 +1,5 @@
 # -*- mode: python ; coding: utf-8 -*-
 
-
 a = Analysis(
     ['main.py'],
     pathex=[],
@@ -9,9 +8,9 @@ a = Analysis(
         ('logo.png', '.'),
         ('logo_TrackSIM.png', '.'),
         ('Icon.ico', '.'),
-        ('config.json', '.'),
+        ('config.json', '.'),  # Vuelve a incluirse para llevar la versión base
         ('config.ini', '.')
-        ],
+    ],
     hiddenimports=['reportlab'],
     hookspath=[],
     hooksconfig={},
@@ -25,16 +24,13 @@ pyz = PYZ(a.pure)
 exe = EXE(
     pyz,
     a.scripts,
-    a.binaries,
-    a.datas,
     [],
+    exclude_binaries=True, # Activa la compilación por carpetas (onedir)
     name='TrackSIM_Tools',
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,
     upx=True,
-    upx_exclude=[],
-    runtime_tmpdir=None,
     console=False,
     disable_windowed_traceback=False,
     argv_emulation=False,
@@ -42,4 +38,15 @@ exe = EXE(
     codesign_identity=None,
     entitlements_file=None,
     icon=['Icon.ico'],
+)
+
+coll = COLLECT(
+    exe,
+    a.binaries,
+    a.zipfiles,
+    a.datas,
+    strip=False,
+    upx=True,
+    upx_exclude=[],
+    name='TrackSIM_Tools', # Nombre del directorio en 'dist/'
 )

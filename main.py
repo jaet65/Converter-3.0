@@ -3,8 +3,11 @@ import multiprocessing
 import sys
 import os
 import tkinter as tk
+from tkinter import messagebox
 import json
 
+# Importamos las funciones necesarias desde tu nuevo archivo update.py
+from update import verificar_actualizacion_silent, descargar_y_actualizar
 
 def set_taskbar_icon():
     """Establece el ícono de la barra de tareas en Windows."""
@@ -104,7 +107,7 @@ def crear_splash():
 
     # Subtítulo (dinámico con animación de puntos suspensivos)
     sub_text = canvas.create_text(SPLASH_W // 2, 210,
-                                  text="Iniciando aplicación",
+                                  text="Iniciando aplicación...",
                                   fill=SUB_COLOR,
                                   font=("Segoe UI", 10))
 
@@ -155,6 +158,20 @@ def crear_splash():
 
     return splash, cerrar_splash
 
+# --- LÓGICA DE ACTUALIZACIÓN EN LA APP PRINCIPAL ---
+def procesar_actualizacion():
+    """Verifica si hay actualización disponible y abre el diálogo interactivo."""
+    latest_version, download_url = verificar_actualizacion_silent()
+    
+    if latest_version and download_url:
+        respuesta = messagebox.askyesno(
+            title="Actualización Disponible",
+            message=f"Se ha detectado una nueva versión de la aplicación: v{latest_version}\n\n"
+                    f"¿Deseas descargarla e instalarla ahora automáticamente?"
+        )
+        if respuesta:
+            descargar_y_actualizar(download_url, latest_version)
+
 # Ensure the script's directory is in sys.path for local module imports
 script_dir = os.path.dirname(os.path.abspath(__file__))
 if script_dir not in sys.path:
@@ -180,4 +197,9 @@ if __name__ == "__main__":
     cerrar_splash()
 
     app = ConvertidorApp()
+
+    # Ejecutar la búsqueda de actualizaciones 100ms después de abrir la ventana principal
+    # para evitar congelar el inicio visual de la interfaz.
+    app.after(100, procesar_actualizacion)
+
     app.mainloop()
