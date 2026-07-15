@@ -25,7 +25,7 @@ class ConvertidorApp(ctk.CTk):
         window_width = 1000
         window_height = 700
 
-        # Dimensión de la pantalla        screen_width = self.winfo_screenwidth()
+        # Dimensión de la pantalla
         screen_height = self.winfo_screenheight()
         screen_width = self.winfo_screenwidth()
 
@@ -59,6 +59,7 @@ class ConvertidorApp(ctk.CTk):
         self.converter_spinner_activo = False
         self.converter_spinner_chars = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"]
         self.converter_spinner_idx = 0
+        self.converter_status_text = "Listo para iniciar."  # Nueva variable de control
 
         self.cargar_configuracion()
         self.crear_interfaz()
@@ -138,7 +139,7 @@ class ConvertidorApp(ctk.CTk):
         progress_frame.grid(row=0, column=1, sticky="nsew", padx=(10, 0))
         progress_frame.grid_columnconfigure(0, weight=1)
         ctk.CTkLabel(progress_frame, text="Progreso", font=ctk.CTkFont(weight="bold")).grid(row=0, column=0, padx=20, pady=(10, 5))
-        self.lbl_status = ctk.CTkLabel(progress_frame, text="Listo para iniciar.", text_color="gray60")
+        self.lbl_status = ctk.CTkLabel(progress_frame, text=self.converter_status_text, text_color="gray60")
         self.lbl_status.grid(row=1, column=0, padx=20, pady=(0, 5), sticky="w")
         self.progress = ctk.CTkProgressBar(progress_frame)
         self.progress.set(0)
@@ -187,11 +188,7 @@ class ConvertidorApp(ctk.CTk):
         self.log_area.configure(state='disabled')
 
     def log_message(self, message, is_error=False):
-        # El usuario ha solicitado no cambiar automáticamente a la pestaña de Log.
-        # La bandera log_shown_this_run ya no es necesaria aquí.
-
         self.log_area.configure(state='normal')
-        # TODO: Agregar tags de color si es necesario (CustomTkinter tags)
         self.log_area.insert("end", message + os.linesep)
         self.log_area.see("end")
         self.log_area.configure(state='disabled')
@@ -203,15 +200,14 @@ class ConvertidorApp(ctk.CTk):
         char = self.converter_spinner_chars[self.converter_spinner_idx]
         self.converter_spinner_idx = (self.converter_spinner_idx + 1) % len(self.converter_spinner_chars)
         
-        # Get the current status message (like "Procesando 5/12...")
-        current_status = self.lbl_status.cget("text")
-        
-        # Basic parsing to avoid overwriting progress numbers
-        if "Procesando" in current_status and "/" in current_status:
-            parts = current_status.split(" ")
-            self.lbl_status.configure(text=f"Procesando {char} {parts[1]}...")
+        # En vez de hacer un parse de la UI, usamos la variable estática de texto
+        # Si el texto ya tiene información de "Procesando", solo inyectamos el spinner al inicio.
+        if "Procesando" in self.converter_status_text:
+            # Eliminamos "Procesando " si existe al inicio para formatearlo consistentemente
+            clean_text = self.converter_status_text.replace("Procesando ", "")
+            self.lbl_status.configure(text=f"Procesando {char} {clean_text}")
         else:
-             self.lbl_status.configure(text=f"Procesando {char}...")
+            self.lbl_status.configure(text=f"{char} {self.converter_status_text}")
 
         self.after(100, self._converter_animar_spinner)
 
@@ -221,12 +217,11 @@ class ConvertidorApp(ctk.CTk):
             if rec['type'] == 'log':
                 self.log_message(rec['msg'], rec.get('is_error', False))
             elif rec['type'] == 'status':
-                # Update status only if spinner is not active, or if it's the final message
+                # Almacenamos el nuevo texto limpio en la variable de control
+                self.converter_status_text = rec['msg']
+                # Si el spinner no está activo, o es el mensaje final, actualizamos directamente la UI
                 if not self.converter_spinner_activo or "Finalizado" in rec['msg']:
-                    self.lbl_status.configure(text=rec['msg'])
-                else:
-                    # If spinner is active, embed its progress into the spinner message
-                    self.lbl_status.configure(text=rec['msg'])
+                    self.lbl_status.configure(text=self.converter_status_text)
             elif rec['type'] == 'progress':
                 if self.progress_max_value > 0:
                     progress_value = rec['value'] / self.progress_max_value
@@ -266,7 +261,8 @@ class ConvertidorApp(ctk.CTk):
         self.guardar_configuracion()
         
         self.progress.set(0)
-        self.lbl_status.configure(text="Iniciando...")
+        self.converter_status_text = "Iniciando..."
+        self.lbl_status.configure(text=self.converter_status_text)
         self.converter_spinner_activo = True
         self._converter_animar_spinner()
         
