@@ -146,9 +146,12 @@ class ConvertidorApp(ctk.CTk):
 
         btn_frame = ctk.CTkFrame(config_tab, fg_color="transparent")
         btn_frame.grid(row=2, column=0, padx=20, pady=(5, 0), sticky="ew")
+        btn_frame.grid_columnconfigure(0, weight=0)
         btn_frame.grid_columnconfigure(1, weight=1)
+        btn_frame.grid_columnconfigure(2, weight=0)
         
         self.btn_abrir_destino = ctk.CTkButton(btn_frame, text="Abrir Carpeta de Destino", command=self.abrir_carpeta_destino)
+        self.btn_abrir_destino.grid(row=0, column=0, padx=0, pady=5, sticky="w")
         
         self.btn_ejecutar = ctk.CTkButton(btn_frame, text="Iniciar Proceso", command=self.iniciar_procesamiento, height=35, font=ctk.CTkFont(size=14, weight="bold"))
         self.btn_ejecutar.grid(row=0, column=2, padx=0, pady=5)
@@ -182,8 +185,6 @@ class ConvertidorApp(ctk.CTk):
         self.log_area.configure(state='normal')
         self.log_area.delete("1.0", "end")
         self.log_area.configure(state='disabled')
-        if self.btn_abrir_destino.winfo_ismapped():
-            self.btn_abrir_destino.grid_forget()
 
     def log_message(self, message, is_error=False):
         # El usuario ha solicitado no cambiar automáticamente a la pestaña de Log.
@@ -235,8 +236,6 @@ class ConvertidorApp(ctk.CTk):
             elif rec['type'] == 'done':
                 self.converter_spinner_activo = False
                 self.btn_ejecutar.configure(state="normal")
-                if rec.get('show_open_button', False):
-                    self.btn_abrir_destino.grid(row=0, column=0, padx=0, pady=10)
         self.after(100, self.verificar_log_queue)
 
     def abrir_carpeta_destino(self):

@@ -514,9 +514,8 @@ class DataApp(ctk.CTkFrame):
         self.start_button = ctk.CTkButton(left_panel, text="Iniciar Extracción", command=self.start_extraction_thread)
         self.start_button.grid(row=10, column=0, sticky="ew", padx=20, pady=5)
         
-        self.open_folder_button = ctk.CTkButton(left_panel, text="Abrir Carpeta", command=self.open_download_folder, state="disabled")
+        self.open_folder_button = ctk.CTkButton(left_panel, text="Abrir Carpeta", command=self.open_download_folder, state="enable")
         self.open_folder_button.grid(row=11, column=0, sticky="ew", padx=20, pady=(5, 20))
-        self.open_folder_button.grid_remove() # Ocultar inicialmente
         
         # --- Panel Derecho ---
         right_panel = ctk.CTkFrame(main_frame, fg_color="transparent")
@@ -704,37 +703,3 @@ class DataApp(ctk.CTkFrame):
         if not self.open_folder_button.winfo_ismapped():
             self.open_folder_button.grid()
         self.open_folder_button.configure(state="normal") # Activar al finalizar
-def set_taskbar_icon():
-    """Establece el ícono de la barra de tareas en Windows."""
-    if sys.platform == "win32":
-        try:
-            import ctypes
-            myappid = 'Simumak.ReportDownloader.1.0' # arbitrary string
-            ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(myappid)
-        except (ImportError, AttributeError, ValueError) as e:
-            print(f"No se pudo establecer el AppUserModelID: {e}")
-
-if __name__ == "__main__":
-    set_taskbar_icon()
-    try:
-        import pyi_splash # type: ignore
-        pyi_splash.update_text("Cargando Report Downloader...")
-        pyi_splash.update_text("Inicializando...")
-
-    except (ImportError, RuntimeError):
-        pass
-
-    root = tk.Tk()
-    app = DataApp(root)
-    app.pack(fill="both", expand=True)
-    
-    # Cerrar el splash screen
-    try:
-        if 'pyi_splash' in sys.modules:
-            import time
-            time.sleep(2)
-            pyi_splash.close()
-    except RuntimeError:
-        pass
-
-    root.mainloop()
