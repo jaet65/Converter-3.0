@@ -2,10 +2,32 @@
 import json
 import subprocess
 import sys
+import os
+import shutil
 from datetime import datetime
 
 CONFIG_FILE = "config.json"
 SPEC_FILE = "convertidor_reportes.spec"
+
+def clean_old_builds():
+    """
+    Elimina de forma segura las carpetas temporales 'build' y 'dist'
+    antes de comenzar una nueva compilación limpia.
+    """
+    folders_to_clean = ["build", "dist"]
+    print("Limpiando compilaciones antiguas...")
+    
+    for folder in folders_to_clean:
+        if os.path.exists(folder):
+            try:
+                # shutil.rmtree equivale a Remove-Item -Recurse -Force
+                shutil.rmtree(folder)
+                print(f"  -> Carpeta '{folder}' eliminada con éxito.")
+            except Exception as e:
+                print(f"  [!] No se pudo eliminar '{folder}': {e}")
+                print("  [!] Asegúrate de que ningún archivo esté abierto o en uso.")
+        else:
+            print(f"  -> Carpeta '{folder}' no existe, no hace falta limpiar.")
 
 def run_build():
     """
@@ -23,6 +45,7 @@ def run_build():
     subprocess.run(pip_install_command, check=True, text=True)
     print("Dependencies installed/updated.")
 
+    clean_old_builds()
 
     try:
         with open(CONFIG_FILE, 'r') as f:
@@ -62,6 +85,7 @@ def run_build():
         sys.executable,
         "-m",
         "PyInstaller",
+        "--clean",
         "--noconfirm",
         SPEC_FILE
     ]

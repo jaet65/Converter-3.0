@@ -47,7 +47,7 @@ def verificar_actualizacion_silent():
     return None, None
 
 def descargar_y_actualizar(download_url, latest_version):
-    """Descarga la nueva versión y reemplaza los archivos usando un script .bat temporal."""
+    """Descarga la nueva versión y reemplaza los archivos usando un script .bat visible."""
     zip_temp = "update.zip"
     app_dir = os.path.dirname(os.path.abspath(sys.argv[0]))
     config_path = os.path.join(app_dir, "config.json")
@@ -68,17 +68,51 @@ def descargar_y_actualizar(download_url, latest_version):
         urllib.request.urlretrieve(download_url, os.path.join(app_dir, zip_temp))
         
         parent_dir = os.path.dirname(app_dir)
+        
+# --- SCRIPT BATCH CORREGIDO PARA LIMPIEZA TOTAL ---
         bat_content = f"""@echo off
-timeout /t 2 /nobreak > nul
-echo Actualizando TrackSIM Tools a v{latest_version}...
+title Actualizador TrackSIM Tools v{latest_version}
+color 0A
+echo ====================================================
+echo      ACTUALIZANDO TRACKSIM TOOLS A v{latest_version}
+echo ====================================================
+echo.
+echo [1/4] Esperando a que la aplicacion principal se cierre...
+timeout /t 3 /nobreak > nul
+
+echo [2/4] Extrayendo paquete de actualizacion (PowerShell)...
 powershell -Command "Expand-Archive -Path '{os.path.join(app_dir, zip_temp)}' -DestinationPath '{app_dir}_temp' -Force"
+
 if exist "{app_dir}_temp" (
+    echo [3/4] Instalando nuevos archivos de sistema...
     xcopy "{app_dir}_temp\\*" "{app_dir}\\" /E /I /Y
-    rd /S /Q "{app_dir}_temp"
-    del "{os.path.join(app_dir, zip_temp)}"
-    start "" "{sys.argv[0]}"
+    
+    echo [4/4] Limpiando archivos temporales...
+    
+    # Forzamos la eliminación del archivo zip y la carpeta temporal antes de cualquier otra cosa
+    del /F /Q "{os.path.join(app_dir, zip_temp)}" > nul 2>&1
+    rd /S /Q "{app_dir}_temp" > nul 2>&1
+    
+    echo.
+    echo ====================================================
+    echo    ¡ACTUALIZACION COMPLETADA CON EXITO!
+    echo ====================================================
+    echo Reiniciando TrackSIM Tools...
+    timeout /t 2 /nobreak > nul
+    
+    # TRUCO FINAL: Lanzamos la app principal en paralelo y mandamos la auto-eliminación
+    # en una sola línea encadenada. Al usar (del "%~f0"), el script muere por completo.
+    start "" "{sys.argv[0]}" & del "%~f0"
+) else (
+    color 0C
+    echo.
+    echo XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+    echo   ERROR: No se pudo extraer el archivo de update.
+    echo XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+    echo.
+    pause
+    del "%~f0"
 )
-del "%~f0"
 """
         bat_path = os.path.join(parent_dir, "updater.bat")
         with open(bat_path, "w", encoding="utf-8") as bat_file:
@@ -87,7 +121,9 @@ del "%~f0"
         with open(config_path, "w", encoding="utf-8") as f:
             json.dump(config_respaldo, f, indent=4, ensure_ascii=False)
 
-        subprocess.Popen([bat_path], shell=True)
+        # --- ABRIR EN NUEVA VENTANA VISIBLE ---
+        # Usamos 'start' para forzar a Windows a abrir una ventana de CMD dedicada
+        subprocess.Popen(f'start "" "{bat_path}"', shell=True)
         sys.exit(0)
         
     except Exception as e:
