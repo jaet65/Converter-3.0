@@ -19,13 +19,14 @@ jobs:
         with:
           python-version: '3.9'
 
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install -r requirements.txt
-
       - name: Build application
         run: python build.py
+
+        # Esto toma el contenido de dist/TrackSIM_Tools y crea el archivo TrackSIMTools.zip en la raíz de dist/
+      - name: Compress Directory to ZIP
+        shell: pwsh
+        run: |
+          Compress-Archive -Path dist/TrackSIM_Tools -DestinationPath dist/TrackSIMTools.zip
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
@@ -53,4 +54,4 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          gh release create ${{ github.ref_name }} --title "${{ github.ref_name }}" --notes "Release for version ${{ github.ref_name }}" dist/TrackSIM_Tools.exe
+          gh release create ${{ github.ref_name }} --title "${{ github.ref_name }}" --notes "Release for version ${{ github.ref_name }}" dist/TrackSIM_Tools.zip
