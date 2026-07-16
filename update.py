@@ -86,17 +86,17 @@ powershell -Command "Expand-Archive -Path '{os.path.join(app_dir, zip_temp)}' -D
 if exist "{app_dir}_temp" (
     echo [3/4] Instalando nuevos archivos de sistema...
     
-    # Comprobamos si los archivos se extrajeron dentro de una subcarpeta "TrackSIM_Tools"
+    :: Comprobamos si los archivos se extrajeron dentro de una subcarpeta "TrackSIM_Tools"
     if exist "{app_dir}_temp\\TrackSIM_Tools" (
         xcopy "{app_dir}_temp\\TrackSIM_Tools\\*" "{app_dir}\\" /E /I /Y
     ) else (
-        # Si venían sueltos por alguna razón, se copian de la raíz temporal
+        :: Si venían sueltos por alguna razón, se copian de la raíz temporal
         xcopy "{app_dir}_temp\\*" "{app_dir}\\" /E /I /Y
     )
     
     echo [4/4] Limpiando archivos temporales...
     
-    # Forzamos la eliminación del archivo zip y la carpeta temporal completa (incluyendo subcarpetas)
+    :: Forzamos la eliminación del archivo zip y la carpeta temporal completa (incluyendo subcarpetas)
     del /F /Q "{os.path.join(app_dir, zip_temp)}" > nul 2>&1
     rd /S /Q "{app_dir}_temp" > nul 2>&1
     
@@ -107,10 +107,10 @@ if exist "{app_dir}_temp" (
     echo Reiniciando TrackSIM Tools...
     timeout /t 2 /nobreak > nul
     
-    # Abrimos la aplicación envolviendo la ruta entre comillas dobles para evitar problemas con espacios
+    :: Abrimos la aplicación envolviendo la ruta entre comillas dobles para evitar problemas con espacios
     start "" "{sys.argv[0]}"
     
-    # Borramos este archivo batch y cerramos la consola limpiamente en líneas separadas
+    :: Borramos este archivo batch y cerramos la consola limpiamente en líneas separadas
     (goto) 2>nul & del "%~f0" & exit
 ) else (
     color 0C
