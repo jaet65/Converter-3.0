@@ -24,16 +24,22 @@ def get_base_path():
     """Devuelve la ruta base correcta tanto en desarrollo como empaquetado."""
     return getattr(sys, '_MEIPASS', os.path.dirname(os.path.abspath(__file__)))
 
+def obtener_version_config():
+    """
+    Lee el archivo config.json (o config) físico al lado del ejecutable en el disco duro
+    y extrae la versión configurada del usuario.
+    """
+    # Determinamos la carpeta física real del ejecutable
+    if getattr(sys, 'frozen', False):
+        # Si está empaquetado, busca al lado de TrackSIM_Tools.exe
+        base_dir_real = os.path.dirname(sys.executable)
+    else:
+        # Si está en modo de desarrollo, usa el directorio de main.py
+        base_dir_real = os.path.dirname(os.path.abspath(__file__))
 
-def obtener_version_config(base_path):
-    """
-    Lee el archivo config.json (o config) en la ruta base de la aplicación
-    y extrae la versión configurada.
-    """
-    # Intentamos buscar tanto 'config.json' como 'config' sin extensión si aplica
     posibles_nombres = ["config.json", "config"]
     for nombre in posibles_nombres:
-        config_path = os.path.join(base_path, nombre)
+        config_path = os.path.join(base_dir_real, nombre)
         if os.path.exists(config_path):
             try:
                 with open(config_path, "r", encoding="utf-8") as f:
@@ -52,7 +58,7 @@ def crear_splash():
     Devuelve la ventana del splash y una función para cerrarla de forma segura de inmediato.
     """
     base_path = get_base_path()
-    version_app = obtener_version_config(base_path)  # Obtiene la versión dinámica del config
+    version_app = obtener_version_config()  # Obtiene la versión dinámica del config
 
     splash = tk.Tk()
     splash.overrideredirect(True)          # Sin bordes ni barra de título

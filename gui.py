@@ -33,7 +33,7 @@ class ConvertidorApp(ctk.CTk):
         center_x = int((screen_width - window_width) / 2)
         center_y = int((screen_height - window_height) / 2)-30
 
-        self.title("TrackSIM Report Tools")
+        self.title("TrackSIM Report Tools LOCAL")
         self.geometry(f"{window_width}x{window_height}+{center_x}+{center_y}")
         self.minsize(window_width, window_height)
 
