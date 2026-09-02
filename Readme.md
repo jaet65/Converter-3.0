@@ -67,6 +67,10 @@ El flujo de trabajo se define en el archivo `.github/workflows/release.yml` y co
 #### 1. Construcción Automática (`build`)
 
 -   **Disparador**: Se activa automáticamente con cada `push` a la rama `main` o al crear un `tag` que comience con `v*`.
+    **Ejemplos**: 
+    git tag
+    git tag v1.1.0
+    git push origin v1.1.0
 -   **Proceso**:
     1.  El entorno se configura en una máquina virtual con `windows-latest`.
     2.  Se instala Python 3.9 y las dependencias del proyecto listadas en `requirements.txt`.
@@ -76,6 +80,10 @@ El flujo de trabajo se define en el archivo `.github/workflows/release.yml` y co
 #### 2. Creación de Releases (`release`)
 
 -   **Disparador**: Se activa solo cuando se crea un nuevo `tag` con el formato `v*` (ej. `v1.0.25`).
+    *Ejemplos*
+    git tag
+    git tag v1.1.0
+    git push origin v1.1.0
 -   **Proceso**:
     1.  Depende del trabajo `build` para asegurarse de que la construcción fue exitosa.
     2.  Descarga el artefacto `dist` que contiene el ejecutable.
