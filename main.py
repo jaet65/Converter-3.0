@@ -5,6 +5,7 @@ import os
 import tkinter as tk
 from tkinter import messagebox
 import json
+import threading
 
 # Importamos las funciones necesarias desde tu nuevo archivo update.py
 from update import verificar_actualizacion_silent, descargar_y_actualizar
@@ -165,18 +166,40 @@ def crear_splash():
     return splash, cerrar_splash
 
 # --- LÓGICA DE ACTUALIZACIÓN EN LA APP PRINCIPAL ---
-def procesar_actualizacion():
+def procesar_actualizacion(app):
     """Verifica si hay actualización disponible y abre el diálogo interactivo."""
     latest_version, download_url = verificar_actualizacion_silent()
     
     if latest_version and download_url:
+        app.set_update_status(f"Actualización disponible: v{latest_version}")
         respuesta = messagebox.askyesno(
             title="Actualización Disponible",
             message=f"Se ha detectado una nueva versión de la aplicación: v{latest_version}\n\n"
                     f"¿Deseas descargarla e instalarla ahora automáticamente?"
         )
         if respuesta:
-            descargar_y_actualizar(download_url, latest_version)
+            iniciar_actualizacion(app, download_url, latest_version)
+        else:
+            app.set_update_status(f"Actualización v{latest_version} pendiente")
+            app.show_update_button(lambda: iniciar_actualizacion(app, download_url, latest_version))
+
+def iniciar_actualizacion(app, download_url, latest_version):
+    app.hide_update_button()
+    app.set_update_status(f"Iniciando descarga de v{latest_version}...")
+
+    def informar_estado(message):
+        app.after(0, app.set_update_status, message)
+
+    def descargar_en_segundo_plano():
+        resultado = descargar_y_actualizar(download_url, latest_version, informar_estado)
+        if resultado:
+            app.after(1000, app.destroy)
+        else:
+            app.after(0, lambda: app.show_update_button(
+                lambda: iniciar_actualizacion(app, download_url, latest_version)
+            ))
+
+    threading.Thread(target=descargar_en_segundo_plano, daemon=True).start()
 
 # Ensure the script's directory is in sys.path for local module imports
 script_dir = os.path.dirname(os.path.abspath(__file__))
@@ -206,6 +229,6 @@ if __name__ == "__main__":
 
     # Ejecutar la búsqueda de actualizaciones 100ms después de abrir la ventana principal
     # para evitar congelar el inicio visual de la interfaz.
-    app.after(100, procesar_actualizacion)
+    app.after(100, lambda: procesar_actualizacion(app))
 
     app.mainloop()

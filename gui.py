@@ -60,6 +60,8 @@ class ConvertidorApp(ctk.CTk):
         self.converter_spinner_chars = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"]
         self.converter_spinner_idx = 0
         self.converter_status_text = "Listo para iniciar."  # Nueva variable de control
+        self.update_button = None
+        self.status_bar_label = None
 
         self.cargar_configuracion()
         self.crear_interfaz()
@@ -172,6 +174,27 @@ class ConvertidorApp(ctk.CTk):
                 version_text += f" ({self.app_build_date})"
             version_label = ctk.CTkLabel(self, text=version_text, text_color="gray50", font=ctk.CTkFont(size=10))
             version_label.grid(row=1, column=0, padx=25, pady=(0, 5), sticky="se")
+
+        status_bar = ctk.CTkFrame(self, height=28, corner_radius=0)
+        status_bar.grid(row=2, column=0, padx=0, pady=0, sticky="ew")
+        status_bar.grid_columnconfigure(0, weight=1)
+        self.status_bar_label = ctk.CTkLabel(status_bar, text="Listo", anchor="w", text_color="gray70")
+        self.status_bar_label.grid(row=0, column=0, padx=15, pady=3, sticky="ew")
+        self.update_button = ctk.CTkButton(status_bar, text="Update", width=90, height=24)
+        self.update_button.grid(row=0, column=1, padx=8, pady=2)
+        self.update_button.grid_remove()
+
+    def set_update_status(self, message):
+        """Actualiza el texto de estado de actualización en el hilo de la UI."""
+        if self.status_bar_label is not None:
+            self.status_bar_label.configure(text=message)
+
+    def show_update_button(self, command):
+        self.update_button.configure(command=command)
+        self.update_button.grid()
+
+    def hide_update_button(self):
+        self.update_button.grid_remove()
 
     def seleccionar_ruta(self, tipo):
         current_path = getattr(self, f"entry_{tipo}").get()

@@ -46,7 +46,7 @@ def verificar_actualizacion_silent():
         print(f"Error al verificar actualizaciones en GitHub: {e}")
     return None, None
 
-def descargar_y_actualizar(download_url, latest_version):
+def descargar_y_actualizar(download_url, latest_version, on_status=None):
     """Descarga la nueva versión y reemplaza los archivos usando un script .bat visible."""
     zip_temp = "update.zip"
     app_dir = os.path.dirname(os.path.abspath(sys.argv[0]))
@@ -64,8 +64,23 @@ def descargar_y_actualizar(download_url, latest_version):
     config_respaldo["version"] = latest_version
 
     try:
+        if on_status:
+            on_status(f"Descargando actualización v{latest_version}...")
         print(f"Descargando actualización v{latest_version}...")
-        urllib.request.urlretrieve(download_url, os.path.join(app_dir, zip_temp))
+
+        def reportar_descarga(block_count, block_size, total_size):
+            if on_status and total_size > 0:
+                downloaded = min(block_count * block_size, total_size)
+                percentage = int(downloaded * 100 / total_size)
+                on_status(f"Descargando actualización v{latest_version}... {percentage}%")
+
+        urllib.request.urlretrieve(
+            download_url,
+            os.path.join(app_dir, zip_temp),
+            reporthook=reportar_descarga,
+        )
+        if on_status:
+            on_status("Descarga completada. Preparando instalación...")
         
         parent_dir = os.path.dirname(app_dir)
         
@@ -133,7 +148,12 @@ if exist "{app_dir}_temp" (
         # --- ABRIR EN NUEVA VENTANA VISIBLE ---
         # Usamos 'start' para forzar a Windows a abrir una ventana de CMD dedicada
         subprocess.Popen(f'start "" "{bat_path}"', shell=True)
-        sys.exit(0)
+        if on_status:
+            on_status("Instalación iniciada. Reiniciando la aplicación...")
+        return True
         
     except Exception as e:
         print(f"Ocurrió un error crítico durante la instalación: {e}")
+        if on_status:
+            on_status(f"Error en la actualización: {e}")
+        return False
