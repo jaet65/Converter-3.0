@@ -167,21 +167,19 @@ class ConvertidorApp(ctk.CTk):
         self.log_area = ctk.CTkTextbox(config_tab, font=("Consolas", 13), state='disabled', corner_radius=8)
         self.log_area.grid(row=3, column=0, columnspan=3, padx=20, pady=(5, 20), sticky="nsew")
 
-        # --- Version Label ---
+        status_bar = ctk.CTkFrame(self, height=28, corner_radius=0)
+        status_bar.grid(row=1, column=0, padx=0, pady=0, sticky="ew")
+        status_bar.grid_columnconfigure(0, weight=1)
+        self.status_bar_label = ctk.CTkLabel(status_bar, text="Listo", anchor="w", text_color="gray70")
+        self.status_bar_label.grid(row=0, column=0, padx=15, pady=3, sticky="ew")
         if self.app_version:
             version_text = f"Version {self.app_version}"
             if self.app_build_date:
                 version_text += f" ({self.app_build_date})"
-            version_label = ctk.CTkLabel(self, text=version_text, text_color="gray50", font=ctk.CTkFont(size=10))
-            version_label.grid(row=1, column=0, padx=25, pady=(0, 5), sticky="se")
-
-        status_bar = ctk.CTkFrame(self, height=28, corner_radius=0)
-        status_bar.grid(row=2, column=0, padx=0, pady=0, sticky="ew")
-        status_bar.grid_columnconfigure(0, weight=1)
-        self.status_bar_label = ctk.CTkLabel(status_bar, text="Listo", anchor="w", text_color="gray70")
-        self.status_bar_label.grid(row=0, column=0, padx=15, pady=3, sticky="ew")
+            version_label = ctk.CTkLabel(status_bar, text=version_text, text_color="gray50", font=ctk.CTkFont(size=10))
+            version_label.grid(row=0, column=1, padx=15, pady=3, sticky="e")
         self.update_button = ctk.CTkButton(status_bar, text="Update", width=90, height=24)
-        self.update_button.grid(row=0, column=1, padx=8, pady=2)
+        self.update_button.grid(row=0, column=2, padx=8, pady=2)
         self.update_button.grid_remove()
 
     def set_update_status(self, message):
@@ -189,7 +187,8 @@ class ConvertidorApp(ctk.CTk):
         if self.status_bar_label is not None:
             self.status_bar_label.configure(text=message)
 
-    def show_update_button(self, command):
+    def show_update_button(self, command, text="Instalar actualización"):
+        self.update_button.configure(text=text)
         self.update_button.configure(command=command)
         self.update_button.grid()
 

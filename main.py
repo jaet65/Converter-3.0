@@ -8,7 +8,12 @@ import json
 import threading
 
 # Importamos las funciones necesarias desde tu nuevo archivo update.py
-from update import verificar_actualizacion_silent, descargar_y_actualizar
+from update import (
+    verificar_actualizacion_silent,
+    actualizacion_descargada,
+    descargar_y_preparar,
+    instalar_actualizacion,
+)
 
 def set_taskbar_icon():
     """Establece el ícono de la barra de tareas en Windows."""
@@ -172,34 +177,65 @@ def procesar_actualizacion(app):
     
     if latest_version and download_url:
         app.set_update_status(f"Actualización disponible: v{latest_version}")
+        if actualizacion_descargada(latest_version):
+            app.set_update_status(f"Actualización v{latest_version} ya descargada")
+            descargar_actualizacion(app, download_url, latest_version)
+            return
+
         respuesta = messagebox.askyesno(
             title="Actualización Disponible",
             message=f"Se ha detectado una nueva versión de la aplicación: v{latest_version}\n\n"
-                    f"¿Deseas descargarla e instalarla ahora automáticamente?"
+                    f"¿Deseas descargarla ahora en segundo plano?"
         )
         if respuesta:
-            iniciar_actualizacion(app, download_url, latest_version)
+            descargar_actualizacion(app, download_url, latest_version)
         else:
             app.set_update_status(f"Actualización v{latest_version} pendiente")
-            app.show_update_button(lambda: iniciar_actualizacion(app, download_url, latest_version))
+            app.show_update_button(lambda: descargar_actualizacion(app, download_url, latest_version), text="Descargar actualización")
 
-def iniciar_actualizacion(app, download_url, latest_version):
+def descargar_actualizacion(app, download_url, latest_version):
     app.hide_update_button()
-    app.set_update_status(f"Iniciando descarga de v{latest_version}...")
+    app.set_update_status(f"Preparando actualización v{latest_version}...")
 
     def informar_estado(message):
         app.after(0, app.set_update_status, message)
 
     def descargar_en_segundo_plano():
-        resultado = descargar_y_actualizar(download_url, latest_version, informar_estado)
-        if resultado:
-            app.after(1000, app.destroy)
+        bat_path = descargar_y_preparar(download_url, latest_version, informar_estado)
+        if bat_path:
+            app.after(0, lambda: confirmar_instalacion(app, bat_path, latest_version))
         else:
             app.after(0, lambda: app.show_update_button(
-                lambda: iniciar_actualizacion(app, download_url, latest_version)
+                lambda: descargar_actualizacion(app, download_url, latest_version), text="Reintentar descarga"
             ))
 
     threading.Thread(target=descargar_en_segundo_plano, daemon=True).start()
+
+def confirmar_instalacion(app, bat_path, latest_version):
+    app.set_update_status(f"Actualización v{latest_version} descargada")
+    respuesta = messagebox.askyesno(
+        title="Actualización lista",
+        message=f"La actualización v{latest_version} está lista para instalar.\n\n"
+                "¿Deseas instalarla ahora?"
+    )
+    if respuesta:
+        app.set_update_status("Iniciando instalación. Reiniciando la aplicación...")
+        if instalar_actualizacion(bat_path, latest_version):
+            app.after(1000, app.destroy)
+    else:
+        app.set_update_status(f"Actualización v{latest_version} lista para instalar")
+        app.show_update_button(
+            lambda: instalar_posteriormente(app, bat_path, latest_version),
+            text="Instalar actualización",
+        )
+
+def instalar_posteriormente(app, bat_path, latest_version):
+    app.hide_update_button()
+    app.set_update_status("Iniciando instalación. Reiniciando la aplicación...")
+    if instalar_actualizacion(bat_path, latest_version):
+        app.after(1000, app.destroy)
+    else:
+        app.set_update_status("No se pudo iniciar la instalación")
 
 # Ensure the script's directory is in sys.path for local module imports
 script_dir = os.path.dirname(os.path.abspath(__file__))

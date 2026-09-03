@@ -46,11 +46,28 @@ def verificar_actualizacion_silent():
         print(f"Error al verificar actualizaciones en GitHub: {e}")
     return None, None
 
-def descargar_y_actualizar(download_url, latest_version, on_status=None):
-    """Descarga la nueva versión y reemplaza los archivos usando un script .bat visible."""
+def actualizacion_descargada(latest_version):
+    """Indica si existe un ZIP local reutilizable para la versión detectada."""
+    app_dir = os.path.dirname(os.path.abspath(sys.argv[0]))
+    zip_path = os.path.join(app_dir, "update.zip")
+    cache_version_path = os.path.join(app_dir, "update.version")
+    if not os.path.exists(zip_path):
+        return False
+    if not os.path.exists(cache_version_path):
+        return True
+    try:
+        with open(cache_version_path, "r", encoding="utf-8") as f:
+            return f.read().strip() == latest_version
+    except OSError:
+        return False
+
+def descargar_y_preparar(download_url, latest_version, on_status=None):
+    """Descarga la actualización y deja preparado el instalador sin ejecutarlo."""
     zip_temp = "update.zip"
     app_dir = os.path.dirname(os.path.abspath(sys.argv[0]))
     config_path = os.path.join(app_dir, "config.json")
+    zip_path = os.path.join(app_dir, zip_temp)
+    cache_version_path = os.path.join(app_dir, "update.version")
     
     # Respaldar configuración actual en memoria
     config_respaldo = {}
@@ -61,24 +78,33 @@ def descargar_y_actualizar(download_url, latest_version, on_status=None):
         except Exception:
             pass
 
-    config_respaldo["version"] = latest_version
-
     try:
-        if on_status:
-            on_status(f"Descargando actualización v{latest_version}...")
-        print(f"Descargando actualización v{latest_version}...")
+        cached_version = None
+        if os.path.exists(cache_version_path):
+            with open(cache_version_path, "r", encoding="utf-8") as f:
+                cached_version = f.read().strip()
 
-        def reportar_descarga(block_count, block_size, total_size):
-            if on_status and total_size > 0:
-                downloaded = min(block_count * block_size, total_size)
-                percentage = int(downloaded * 100 / total_size)
-                on_status(f"Descargando actualización v{latest_version}... {percentage}%")
+        if os.path.exists(zip_path) and cached_version in (None, latest_version):
+            if on_status:
+                on_status(f"Usando actualización v{latest_version} ya descargada")
+            if cached_version is None:
+                with open(cache_version_path, "w", encoding="utf-8") as f:
+                    f.write(latest_version)
+        else:
+            if on_status:
+                on_status(f"Descargando actualización v{latest_version}...")
+            print(f"Descargando actualización v{latest_version}...")
 
-        urllib.request.urlretrieve(
-            download_url,
-            os.path.join(app_dir, zip_temp),
-            reporthook=reportar_descarga,
-        )
+            def reportar_descarga(block_count, block_size, total_size):
+                if on_status and total_size > 0:
+                    downloaded = min(block_count * block_size, total_size)
+                    percentage = int(downloaded * 100 / total_size)
+                    on_status(f"Descargando actualización v{latest_version}... {percentage}%")
+
+            urllib.request.urlretrieve(download_url, zip_path, reporthook=reportar_descarga)
+            with open(cache_version_path, "w", encoding="utf-8") as f:
+                f.write(latest_version)
+
         if on_status:
             on_status("Descarga completada. Preparando instalación...")
         
@@ -95,8 +121,18 @@ echo.
 echo [1/4] Esperando a que la aplicacion principal se cierre...
 timeout /t 3 /nobreak > nul
 
-echo [2/4] Extrayendo paquete de actualizacion (PowerShell)...
-powershell -Command "Expand-Archive -Path '{os.path.join(app_dir, zip_temp)}' -DestinationPath '{app_dir}_temp' -Force"
+echo [2/4] Extrayendo paquete de actualizacion...
+if exist "{app_dir}_temp" rd /S /Q "{app_dir}_temp" > nul 2>&1
+mkdir "{app_dir}_temp"
+tar -xf "{os.path.join(app_dir, zip_temp)}" -C "{app_dir}_temp"
+
+if errorlevel 1 (
+    color 0C
+    echo ERROR: No se pudo extraer el archivo de update.
+    rd /S /Q "{app_dir}_temp" > nul 2>&1
+    pause
+    (goto) 2>nul & del "%~f0" & exit
+)
 
 if exist "{app_dir}_temp" (
     echo [3/4] Instalando nuevos archivos de sistema...
@@ -113,6 +149,7 @@ if exist "{app_dir}_temp" (
     
     :: Forzamos la eliminación del archivo zip y la carpeta temporal completa (incluyendo subcarpetas)
     del /F /Q "{os.path.join(app_dir, zip_temp)}" > nul 2>&1
+    del /F /Q "{cache_version_path}" > nul 2>&1
     rd /S /Q "{app_dir}_temp" > nul 2>&1
     
     echo.
@@ -142,18 +179,33 @@ if exist "{app_dir}_temp" (
         with open(bat_path, "w", encoding="utf-8") as bat_file:
             bat_file.write(bat_content)
             
-        with open(config_path, "w", encoding="utf-8") as f:
-            json.dump(config_respaldo, f, indent=4, ensure_ascii=False)
+        return bat_path
 
-        # --- ABRIR EN NUEVA VENTANA VISIBLE ---
-        # Usamos 'start' para forzar a Windows a abrir una ventana de CMD dedicada
-        subprocess.Popen(f'start "" "{bat_path}"', shell=True)
-        if on_status:
-            on_status("Instalación iniciada. Reiniciando la aplicación...")
-        return True
-        
     except Exception as e:
         print(f"Ocurrió un error crítico durante la instalación: {e}")
         if on_status:
             on_status(f"Error en la actualización: {e}")
+        return None
+
+def instalar_actualizacion(bat_path, latest_version, on_status=None):
+    """Guarda la versión descargada y lanza el instalador después de confirmarlo."""
+    app_dir = os.path.dirname(os.path.abspath(sys.argv[0]))
+    config_path = os.path.join(app_dir, "config.json")
+    try:
+        config = {}
+        if os.path.exists(config_path):
+            with open(config_path, "r", encoding="utf-8") as f:
+                config = json.load(f)
+        config["version"] = latest_version
+        with open(config_path, "w", encoding="utf-8") as f:
+            json.dump(config, f, indent=4, ensure_ascii=False)
+
+        subprocess.Popen(f'start "" "{bat_path}"', shell=True)
+        if on_status:
+            on_status("Instalación iniciada. Reiniciando la aplicación...")
+        return True
+    except Exception as e:
+        print(f"Ocurrió un error al iniciar la instalación: {e}")
+        if on_status:
+            on_status(f"Error al iniciar la instalación: {e}")
         return False
