@@ -7,6 +7,7 @@ import urllib.request
 import subprocess
 import shutil
 import tempfile
+from datetime import datetime
 
 # =====================================================================
 # CONFIGURACIÓN DEL REPOSITORIO DE GITHUB
@@ -177,7 +178,7 @@ def instalar_actualizacion(zip_path, latest_version, on_status=None):
             on_status(f"Error al iniciar la instalación: {e}")
         return False
 
-def aplicar_actualizacion(zip_path, target_dir, target_executable, on_status=None):
+def aplicar_actualizacion(zip_path, latest_version, target_dir, target_executable, on_status=None):
     """Extrae e instala el paquete desde el proceso auxiliar."""
     temp_dir = f"{target_dir}_temp"
     try:
@@ -216,6 +217,20 @@ def aplicar_actualizacion(zip_path, target_dir, target_executable, on_status=Non
                 time.sleep(1)
         if ultimo_error is not None:
             raise ultimo_error
+        config_path = os.path.join(target_dir, "config.json")
+        config = {}
+        if os.path.isfile(config_path):
+            try:
+                with open(config_path, "r", encoding="utf-8") as archivo_config:
+                    config = json.load(archivo_config)
+            except (OSError, json.JSONDecodeError):
+                config = {}
+        config["version"] = latest_version
+        config["build_date"] = datetime.now().strftime("%d/%m/%y")
+        config_temp_path = f"{config_path}.tmp"
+        with open(config_temp_path, "w", encoding="utf-8") as archivo_config:
+            json.dump(config, archivo_config, indent=4, ensure_ascii=False)
+        os.replace(config_temp_path, config_path)
         if on_status:
             on_status("Limpiando archivos temporales...")
         os.remove(zip_path)

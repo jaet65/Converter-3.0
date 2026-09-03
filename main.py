@@ -317,7 +317,13 @@ def ejecutar_instalador_grafico(zip_path, latest_version, target_executable):
         time.sleep(2.5)
         instalador.after(0, instalador.deiconify)
         actualizar_estado("Aplicación cerrada. Iniciando instalación...")
-        resultado = aplicar_actualizacion(zip_path, os.path.dirname(target_executable), target_executable, actualizar_estado)
+        resultado = aplicar_actualizacion(
+            zip_path,
+            latest_version,
+            os.path.dirname(target_executable),
+            target_executable,
+            actualizar_estado,
+        )
         instalador.after(0, finalizar, resultado)
 
     threading.Thread(target=instalar_en_segundo_plano, daemon=True).start()
