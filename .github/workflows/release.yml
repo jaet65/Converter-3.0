@@ -53,5 +53,16 @@ jobs:
       - name: Create Release and Upload Asset
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: pwsh
         run: |
-          gh release create ${{ github.ref_name }} --title "${{ github.ref_name }}" --notes "Release for version ${{ github.ref_name }}" dist/TrackSIMTools.zip
+          $currentVersion = "${{ github.ref_name }}".TrimStart('v')
+          $previousTag = gh release list --limit 20 --exclude-drafts --exclude-pre-releases --json tagName --jq '.[].tagName' | Where-Object { $_ -ne "${{ github.ref_name }}" } | Select-Object -First 1
+          $assets = @("dist/TrackSIMTools.zip")
+          if ($previousTag) {
+            New-Item -ItemType Directory -Force -Path previous | Out-Null
+            gh release download $previousTag --pattern TrackSIMTools.zip --dir previous
+            $previousVersion = $previousTag.TrimStart('v')
+            python create_incremental_update.py "previous/TrackSIMTools.zip" "dist/TrackSIMTools.zip" "dist/TrackSIMTools-$previousVersion-to-$currentVersion.zip" $previousVersion $currentVersion
+            $assets += "dist/TrackSIMTools-$previousVersion-to-$currentVersion.zip"
+          }
+          gh release create ${{ github.ref_name }} --title "${{ github.ref_name }}" --notes "Release for version ${{ github.ref_name }}" $assets

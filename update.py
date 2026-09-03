@@ -42,10 +42,16 @@ def verificar_actualizacion_silent():
             
             if latest_version != local_version:
                 download_url = None
+                incremental_name = f"TrackSIMTools-{local_version}-to-{latest_version}.zip"
                 for asset in data.get("assets", []):
-                    if asset["name"] == ZIP_ASSET_NAME:
+                    if asset["name"] == incremental_name:
                         download_url = asset["browser_download_url"]
                         break
+                if download_url is None:
+                    for asset in data.get("assets", []):
+                        if asset["name"] == ZIP_ASSET_NAME:
+                            download_url = asset["browser_download_url"]
+                            break
                 return latest_version, download_url
     except Exception as e:
         print(f"Error al verificar actualizaciones en GitHub: {e}")
@@ -201,6 +207,12 @@ def aplicar_actualizacion(zip_path, latest_version, target_dir, target_executabl
                         f"({indice}/{len(archivos)} archivos)"
                     )
 
+        manifest_path = os.path.join(temp_dir, "update_manifest.json")
+        manifest = {}
+        if os.path.isfile(manifest_path):
+            with open(manifest_path, "r", encoding="utf-8") as manifest_file:
+                manifest = json.load(manifest_file)
+
         source_dir = os.path.join(temp_dir, "TrackSIM_Tools")
         if not os.path.isdir(source_dir):
             source_dir = temp_dir
@@ -217,6 +229,12 @@ def aplicar_actualizacion(zip_path, latest_version, target_dir, target_executabl
                 time.sleep(1)
         if ultimo_error is not None:
             raise ultimo_error
+        for relative_path in manifest.get("deleted_files", []):
+            deleted_path = os.path.join(target_dir, relative_path.replace("/", os.sep))
+            if os.path.isfile(deleted_path):
+                os.remove(deleted_path)
+        if manifest.get("type") == "incremental":
+            latest_version = manifest.get("to_version", latest_version)
         config_path = os.path.join(target_dir, "config.json")
         config = {}
         if os.path.isfile(config_path):
