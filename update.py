@@ -187,7 +187,18 @@ def aplicar_actualizacion(zip_path, target_dir, target_executable, on_status=Non
             shutil.rmtree(temp_dir, ignore_errors=True)
         os.makedirs(temp_dir, exist_ok=True)
         with zipfile.ZipFile(zip_path) as archivo_zip:
-            archivo_zip.extractall(temp_dir)
+            archivos = archivo_zip.infolist()
+            total_bytes = sum(archivo.file_size for archivo in archivos) or 1
+            extraidos_bytes = 0
+            for indice, archivo in enumerate(archivos, start=1):
+                archivo_zip.extract(archivo, temp_dir)
+                extraidos_bytes += archivo.file_size
+                porcentaje = min(int(extraidos_bytes * 100 / total_bytes), 100)
+                if on_status:
+                    on_status(
+                        f"Extrayendo paquete de actualización... {porcentaje}% "
+                        f"({indice}/{len(archivos)} archivos)"
+                    )
 
         source_dir = os.path.join(temp_dir, "TrackSIM_Tools")
         if not os.path.isdir(source_dir):

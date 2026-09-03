@@ -261,6 +261,8 @@ def ejecutar_instalador_grafico(zip_path, latest_version, target_executable):
     progreso = ctk.CTkProgressBar(instalador, width=500, mode="indeterminate")
     progreso.pack(padx=24, pady=(0, 16))
     progreso.start()
+    porcentaje = ctk.CTkLabel(instalador, text="Preparando...", text_color="gray70")
+    porcentaje.pack(pady=(0, 10))
     detalle = ctk.CTkTextbox(instalador, width=500, height=125, state="disabled")
     detalle.pack(padx=24, pady=(0, 14), fill="both", expand=True)
     boton_cerrar = ctk.CTkButton(instalador, text="Cerrar", width=100, state="disabled", command=instalador.destroy)
@@ -277,6 +279,20 @@ def ejecutar_instalador_grafico(zip_path, latest_version, target_executable):
     def actualizar_estado_ui(mensaje):
         estado.configure(text=mensaje)
         etapa.configure(text=next((texto for clave, texto in etapas.items() if mensaje.startswith(clave)), etapa.cget("text")))
+        porcentaje_encontrado = next((token for token in mensaje.split() if token.endswith("%")), None)
+        if porcentaje_encontrado:
+            try:
+                progreso.stop()
+                progreso.configure(mode="determinate")
+                progreso.set(float(porcentaje_encontrado[:-1]) / 100)
+                porcentaje.configure(text=porcentaje_encontrado)
+            except ValueError:
+                pass
+        elif mensaje.startswith("Instalando") or mensaje.startswith("Limpiando"):
+            progreso.stop()
+            progreso.configure(mode="indeterminate")
+            progreso.start()
+            porcentaje.configure(text="En curso...")
         detalle.configure(state="normal")
         detalle.insert("end", f"{mensaje}\n")
         detalle.see("end")
