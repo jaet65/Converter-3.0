@@ -5,6 +5,8 @@ import time
 import zipfile
 import urllib.request
 import subprocess
+import shutil
+import tempfile
 
 # =====================================================================
 # CONFIGURACIÓN DEL REPOSITORIO DE GITHUB
@@ -134,79 +136,8 @@ def descargar_y_preparar(download_url, latest_version, on_status=None):
 
         if on_status:
             on_status("Descarga completada. Preparando instalación...")
-        
-        parent_dir = os.path.dirname(app_dir)
-        
-# --- SCRIPT BATCH CON EXTRACCIÓN Y COPIA COMPENSADA ---
-        bat_content = f"""@echo off
-title Actualizador TrackSIM Tools v{latest_version}
-color 0A
-echo ====================================================
-echo      ACTUALIZANDO TRACKSIM TOOLS A v{latest_version}
-echo ====================================================
-echo.
-echo [1/4] Esperando a que la aplicacion principal se cierre...
-timeout /t 3 /nobreak > nul
 
-echo [2/4] Extrayendo paquete de actualizacion...
-if exist "{app_dir}_temp" rd /S /Q "{app_dir}_temp" > nul 2>&1
-mkdir "{app_dir}_temp"
-tar -xf "{os.path.join(app_dir, zip_temp)}" -C "{app_dir}_temp"
-
-if errorlevel 1 (
-    color 0C
-    echo ERROR: No se pudo extraer el archivo de update.
-    rd /S /Q "{app_dir}_temp" > nul 2>&1
-    pause
-    (goto) 2>nul & del "%~f0" & exit
-)
-
-if exist "{app_dir}_temp" (
-    echo [3/4] Instalando nuevos archivos de sistema...
-    
-    :: Comprobamos si los archivos se extrajeron dentro de una subcarpeta "TrackSIM_Tools"
-    if exist "{app_dir}_temp\\TrackSIM_Tools" (
-        xcopy "{app_dir}_temp\\TrackSIM_Tools\\*" "{app_dir}\\" /E /I /Y
-    ) else (
-        :: Si venían sueltos por alguna razón, se copian de la raíz temporal
-        xcopy "{app_dir}_temp\\*" "{app_dir}\\" /E /I /Y
-    )
-    
-    echo [4/4] Limpiando archivos temporales...
-    
-    :: Forzamos la eliminación del archivo zip y la carpeta temporal completa (incluyendo subcarpetas)
-    del /F /Q "{os.path.join(app_dir, zip_temp)}" > nul 2>&1
-    del /F /Q "{cache_version_path}" > nul 2>&1
-    rd /S /Q "{app_dir}_temp" > nul 2>&1
-    
-    echo.
-    echo ====================================================
-    echo    ¡ACTUALIZACION COMPLETADA CON EXITO!
-    echo ====================================================
-    echo Reiniciando TrackSIM Tools...
-    timeout /t 2 /nobreak > nul
-    
-    :: Abrimos la aplicación envolviendo la ruta entre comillas dobles para evitar problemas con espacios
-    start "" "{sys.argv[0]}"
-    
-    :: Borramos este archivo batch y cerramos la consola limpiamente en líneas separadas
-    (goto) 2>nul & del "%~f0" & exit
-) else (
-    color 0C
-    echo.
-    echo XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-    echo   ERROR: No se pudo extraer el archivo de update.
-    echo XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-    echo.
-    pause
-    (goto) 2>nul & del "%~f0" & exit
-)
-"""
-        bat_path = os.path.join(parent_dir, "updater.bat")
-        with open(bat_path, "w", encoding="utf-8") as bat_file:
-            bat_file.write(bat_content)
-            
-        return bat_path
+        return zip_path
 
     except Exception as e:
         if os.path.exists(zip_part_path):
@@ -219,10 +150,18 @@ if exist "{app_dir}_temp" (
             on_status(f"Error en la actualización: {e}")
         return None
 
-def instalar_actualizacion(bat_path, latest_version, on_status=None):
-    """Lanza el instalador después de confirmar que la actualización está lista."""
+def instalar_actualizacion(zip_path, latest_version, on_status=None):
+    """Lanza una copia auxiliar para instalar la actualización con interfaz gráfica."""
     try:
-        subprocess.Popen(f'start "" "{bat_path}"', shell=True)
+        app_dir = os.path.dirname(os.path.abspath(sys.argv[0]))
+        target_executable = sys.executable if getattr(sys, "frozen", False) else os.path.abspath(sys.argv[0])
+        if getattr(sys, "frozen", False):
+            updater_executable = os.path.join(tempfile.gettempdir(), "TrackSIM_Tools_updater.exe")
+            shutil.copy2(sys.executable, updater_executable)
+            command = [updater_executable, "--apply-update", zip_path, latest_version, target_executable]
+        else:
+            command = [sys.executable, os.path.abspath(sys.argv[0]), "--apply-update", zip_path, latest_version, target_executable]
+        subprocess.Popen(command, close_fds=True, start_new_session=True)
         if on_status:
             on_status("Instalación iniciada. Reiniciando la aplicación...")
         return True
@@ -230,4 +169,53 @@ def instalar_actualizacion(bat_path, latest_version, on_status=None):
         print(f"Ocurrió un error al iniciar la instalación: {e}")
         if on_status:
             on_status(f"Error al iniciar la instalación: {e}")
+        return False
+
+def aplicar_actualizacion(zip_path, target_dir, target_executable, on_status=None):
+    """Extrae e instala el paquete desde el proceso auxiliar."""
+    temp_dir = f"{target_dir}_temp"
+    try:
+        if on_status:
+            on_status("Extrayendo el paquete de actualización...")
+        if os.path.exists(temp_dir):
+            shutil.rmtree(temp_dir, ignore_errors=True)
+        os.makedirs(temp_dir, exist_ok=True)
+        with zipfile.ZipFile(zip_path) as archivo_zip:
+            archivo_zip.extractall(temp_dir)
+
+        source_dir = os.path.join(temp_dir, "TrackSIM_Tools")
+        if not os.path.isdir(source_dir):
+            source_dir = temp_dir
+        if on_status:
+            on_status("Instalando los nuevos archivos...")
+        ultimo_error = None
+        for intento in range(8):
+            try:
+                shutil.copytree(source_dir, target_dir, dirs_exist_ok=True)
+                ultimo_error = None
+                break
+            except OSError as error:
+                ultimo_error = error
+                time.sleep(1)
+        if ultimo_error is not None:
+            raise ultimo_error
+        if on_status:
+            on_status("Limpiando archivos temporales...")
+        os.remove(zip_path)
+        cache_version_path = os.path.join(target_dir, "update.version")
+        if os.path.exists(cache_version_path):
+            os.remove(cache_version_path)
+        shutil.rmtree(temp_dir, ignore_errors=True)
+        if on_status:
+            on_status("Actualización completada. Reiniciando la aplicación...")
+        subprocess.Popen([target_executable], close_fds=True, start_new_session=True)
+        if os.path.basename(sys.executable).lower() == "tracksim_tools_updater.exe":
+            try:
+                os.remove(sys.executable)
+            except OSError:
+                pass
+        return True
+    except Exception as error:
+        if on_status:
+            on_status(f"No se pudo instalar la actualización: {error}")
         return False

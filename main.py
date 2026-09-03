@@ -6,6 +6,7 @@ import tkinter as tk
 from tkinter import messagebox
 import json
 import threading
+import time
 
 # Importamos las funciones necesarias desde tu nuevo archivo update.py
 from update import (
@@ -13,6 +14,7 @@ from update import (
     actualizacion_descargada,
     descargar_y_preparar,
     instalar_actualizacion,
+    aplicar_actualizacion,
 )
 
 def set_taskbar_icon():
@@ -195,23 +197,21 @@ def procesar_actualizacion(app):
 
 def descargar_actualizacion(app, download_url, latest_version):
     app.hide_update_button()
-    app.set_update_status(f"Preparando actualización v{latest_version}...")
 
     def informar_estado(message):
         app.after(0, app.set_update_status, message)
 
     def descargar_en_segundo_plano():
-        bat_path = descargar_y_preparar(download_url, latest_version, informar_estado)
-        if bat_path:
-            app.after(0, lambda: confirmar_instalacion(app, bat_path, latest_version))
+        zip_path = descargar_y_preparar(download_url, latest_version, informar_estado)
+        if zip_path:
+            app.after(0, lambda: confirmar_instalacion(app, zip_path, latest_version))
         else:
             app.after(0, lambda: app.show_update_button(
-                lambda: descargar_actualizacion(app, download_url, latest_version), text="Reintentar descarga"
-            ))
+                lambda: descargar_actualizacion(app, download_url, latest_version), text="Reintentar descarga"))
 
     threading.Thread(target=descargar_en_segundo_plano, daemon=True).start()
 
-def confirmar_instalacion(app, bat_path, latest_version):
+def confirmar_instalacion(app, zip_path, latest_version):
     app.set_update_status(f"Actualización v{latest_version} descargada")
     respuesta = messagebox.askyesno(
         title="Actualización lista",
@@ -220,19 +220,19 @@ def confirmar_instalacion(app, bat_path, latest_version):
     )
     if respuesta:
         app.set_update_status("Iniciando instalación. Reiniciando la aplicación...")
-        if instalar_actualizacion(bat_path, latest_version):
+        if instalar_actualizacion(zip_path, latest_version):
             app.after(1000, app.destroy)
     else:
         app.set_update_status(f"Actualización v{latest_version} lista para instalar")
         app.show_update_button(
-            lambda: instalar_posteriormente(app, bat_path, latest_version),
+            lambda: instalar_posteriormente(app, zip_path, latest_version),
             text="Instalar actualización",
         )
 
-def instalar_posteriormente(app, bat_path, latest_version):
+def instalar_posteriormente(app, zip_path, latest_version):
     app.hide_update_button()
     app.set_update_status("Iniciando instalación. Reiniciando la aplicación...")
-    if instalar_actualizacion(bat_path, latest_version):
+    if instalar_actualizacion(zip_path, latest_version):
         app.after(1000, app.destroy)
     else:
         app.set_update_status("No se pudo iniciar la instalación")
@@ -244,12 +244,79 @@ if script_dir not in sys.path:
 
 import customtkinter as ctk
 
+def ejecutar_instalador_grafico(zip_path, latest_version, target_executable):
+    instalador = ctk.CTk()
+    instalador.withdraw()
+    instalador.title("Actualizando TrackSIM Report Tools")
+    instalador.geometry("580x420")
+    instalador.resizable(False, False)
+    instalador.protocol("WM_DELETE_WINDOW", lambda: None)
+
+    ctk.CTkLabel(instalador, text="Instalando actualización", font=ctk.CTkFont(size=22, weight="bold")).pack(pady=(24, 6))
+    ctk.CTkLabel(instalador, text=f"Versión v{latest_version}", text_color="gray70").pack()
+    estado = ctk.CTkLabel(instalador, text="Esperando el cierre de la aplicación...", wraplength=500)
+    estado.pack(padx=24, pady=(18, 8))
+    etapa = ctk.CTkLabel(instalador, text="Etapa 1 de 4: Cerrando aplicación", text_color="#4da6ff")
+    etapa.pack(padx=24, pady=(0, 10))
+    progreso = ctk.CTkProgressBar(instalador, width=500, mode="indeterminate")
+    progreso.pack(padx=24, pady=(0, 16))
+    progreso.start()
+    detalle = ctk.CTkTextbox(instalador, width=500, height=125, state="disabled")
+    detalle.pack(padx=24, pady=(0, 14), fill="both", expand=True)
+    boton_cerrar = ctk.CTkButton(instalador, text="Cerrar", width=100, state="disabled", command=instalador.destroy)
+    boton_cerrar.pack(pady=(0, 18))
+
+    etapas = {
+        "Extrayendo": "Etapa 2 de 4: Extrayendo paquete",
+        "Instalando": "Etapa 3 de 4: Instalando archivos",
+        "Limpiando": "Etapa 4 de 4: Limpiando archivos temporales",
+        "Actualización completada": "Proceso finalizado",
+        "No se pudo": "Proceso detenido",
+    }
+
+    def actualizar_estado_ui(mensaje):
+        estado.configure(text=mensaje)
+        etapa.configure(text=next((texto for clave, texto in etapas.items() if mensaje.startswith(clave)), etapa.cget("text")))
+        detalle.configure(state="normal")
+        detalle.insert("end", f"{mensaje}\n")
+        detalle.see("end")
+        detalle.configure(state="disabled")
+
+    def actualizar_estado(mensaje):
+        instalador.after(0, actualizar_estado_ui, mensaje)
+
+    def finalizar(exito):
+        progreso.stop()
+        if exito:
+            estado.configure(text="Actualización completada. Cerrando...")
+            instalador.after(1200, instalador.destroy)
+        else:
+            estado.configure(text="No se pudo completar la actualización.")
+            etapa.configure(text="Proceso detenido")
+            progreso.configure(mode="determinate")
+            progreso.set(0)
+            boton_cerrar.configure(state="normal")
+
+    def instalar_en_segundo_plano():
+        time.sleep(2.5)
+        instalador.after(0, instalador.deiconify)
+        actualizar_estado("Aplicación cerrada. Iniciando instalación...")
+        resultado = aplicar_actualizacion(zip_path, os.path.dirname(target_executable), target_executable, actualizar_estado)
+        instalador.after(0, finalizar, resultado)
+
+    threading.Thread(target=instalar_en_segundo_plano, daemon=True).start()
+    instalador.mainloop()
+
 # --- APARIENCIA INICIAL ---
 ctk.set_appearance_mode("System")  # "Light", "Dark", "System"
 ctk.set_default_color_theme("blue") # "blue", "green", "dark-blue"
 
 if __name__ == "__main__":
     multiprocessing.freeze_support()
+    if "--apply-update" in sys.argv:
+        indice = sys.argv.index("--apply-update")
+        ejecutar_instalador_grafico(sys.argv[indice + 1], sys.argv[indice + 2], sys.argv[indice + 3])
+        sys.exit(0)
     set_taskbar_icon()
 
     # Mostrar splash antes de cargar los módulos pesados
