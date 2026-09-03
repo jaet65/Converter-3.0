@@ -1,6 +1,8 @@
 import os
 import sys
 import json
+import time
+import zipfile
 import urllib.request
 import subprocess
 
@@ -46,12 +48,22 @@ def verificar_actualizacion_silent():
         print(f"Error al verificar actualizaciones en GitHub: {e}")
     return None, None
 
+def archivo_zip_valido(zip_path):
+    """Comprueba que el ZIP sea legible y que sus archivos no tengan errores CRC."""
+    try:
+        if not zipfile.is_zipfile(zip_path):
+            return False
+        with zipfile.ZipFile(zip_path) as archivo_zip:
+            return archivo_zip.testzip() is None
+    except (OSError, zipfile.BadZipFile, RuntimeError):
+        return False
+
 def actualizacion_descargada(latest_version):
     """Indica si existe un ZIP local reutilizable para la versión detectada."""
     app_dir = os.path.dirname(os.path.abspath(sys.argv[0]))
     zip_path = os.path.join(app_dir, "update.zip")
     cache_version_path = os.path.join(app_dir, "update.version")
-    if not os.path.exists(zip_path):
+    if not archivo_zip_valido(zip_path):
         return False
     if not os.path.exists(cache_version_path):
         return True
@@ -65,18 +77,9 @@ def descargar_y_preparar(download_url, latest_version, on_status=None):
     """Descarga la actualización y deja preparado el instalador sin ejecutarlo."""
     zip_temp = "update.zip"
     app_dir = os.path.dirname(os.path.abspath(sys.argv[0]))
-    config_path = os.path.join(app_dir, "config.json")
     zip_path = os.path.join(app_dir, zip_temp)
+    zip_part_path = f"{zip_path}.part"
     cache_version_path = os.path.join(app_dir, "update.version")
-    
-    # Respaldar configuración actual en memoria
-    config_respaldo = {}
-    if os.path.exists(config_path):
-        try:
-            with open(config_path, "r", encoding="utf-8") as f:
-                config_respaldo = json.load(f)
-        except Exception:
-            pass
 
     try:
         cached_version = None
@@ -84,7 +87,7 @@ def descargar_y_preparar(download_url, latest_version, on_status=None):
             with open(cache_version_path, "r", encoding="utf-8") as f:
                 cached_version = f.read().strip()
 
-        if os.path.exists(zip_path) and cached_version in (None, latest_version):
+        if archivo_zip_valido(zip_path) and cached_version in (None, latest_version):
             if on_status:
                 on_status(f"Usando actualización v{latest_version} ya descargada")
             if cached_version is None:
@@ -94,14 +97,38 @@ def descargar_y_preparar(download_url, latest_version, on_status=None):
             if on_status:
                 on_status(f"Descargando actualización v{latest_version}...")
             print(f"Descargando actualización v{latest_version}...")
+            inicio_descarga = time.monotonic()
+
+            def formatear_velocidad(bytes_por_segundo):
+                unidades = ("B/s", "KB/s", "MB/s", "GB/s")
+                velocidad = float(bytes_por_segundo)
+                unidad = unidades[0]
+                for unidad_actual in unidades:
+                    unidad = unidad_actual
+                    if velocidad < 1024 or unidad_actual == unidades[-1]:
+                        break
+                    velocidad /= 1024
+                return f"{velocidad:.2f} {unidad}"
 
             def reportar_descarga(block_count, block_size, total_size):
                 if on_status and total_size > 0:
                     downloaded = min(block_count * block_size, total_size)
                     percentage = int(downloaded * 100 / total_size)
-                    on_status(f"Descargando actualización v{latest_version}... {percentage}%")
+                    elapsed = max(time.monotonic() - inicio_descarga, 0.001)
+                    speed = formatear_velocidad(downloaded / elapsed)
+                    downloaded_mb = downloaded / (1024 * 1024)
+                    total_mb = total_size / (1024 * 1024)
+                    on_status(
+                        f"Descargando actualización v{latest_version}... "
+                        f"{percentage}% ({downloaded_mb:.2f} MB/{total_mb:.2f} MB, {speed})"
+                    )
 
-            urllib.request.urlretrieve(download_url, zip_path, reporthook=reportar_descarga)
+            if os.path.exists(zip_part_path):
+                os.remove(zip_part_path)
+            urllib.request.urlretrieve(download_url, zip_part_path, reporthook=reportar_descarga)
+            if not archivo_zip_valido(zip_part_path):
+                raise ValueError("El archivo descargado no es un ZIP válido o está incompleto")
+            os.replace(zip_part_path, zip_path)
             with open(cache_version_path, "w", encoding="utf-8") as f:
                 f.write(latest_version)
 
@@ -182,24 +209,19 @@ if exist "{app_dir}_temp" (
         return bat_path
 
     except Exception as e:
+        if os.path.exists(zip_part_path):
+            try:
+                os.remove(zip_part_path)
+            except OSError:
+                pass
         print(f"Ocurrió un error crítico durante la instalación: {e}")
         if on_status:
             on_status(f"Error en la actualización: {e}")
         return None
 
 def instalar_actualizacion(bat_path, latest_version, on_status=None):
-    """Guarda la versión descargada y lanza el instalador después de confirmarlo."""
-    app_dir = os.path.dirname(os.path.abspath(sys.argv[0]))
-    config_path = os.path.join(app_dir, "config.json")
+    """Lanza el instalador después de confirmar que la actualización está lista."""
     try:
-        config = {}
-        if os.path.exists(config_path):
-            with open(config_path, "r", encoding="utf-8") as f:
-                config = json.load(f)
-        config["version"] = latest_version
-        with open(config_path, "w", encoding="utf-8") as f:
-            json.dump(config, f, indent=4, ensure_ascii=False)
-
         subprocess.Popen(f'start "" "{bat_path}"', shell=True)
         if on_status:
             on_status("Instalación iniciada. Reiniciando la aplicación...")

@@ -31,7 +31,7 @@ def clean_old_builds():
 
 def run_build():
     """
-    Increments the patch version in config.json and runs the PyInstaller build.
+    Uses the GitHub tag version when available and runs the PyInstaller build.
     """
     print("Installing/updating dependencies...")
     pip_install_command = [
@@ -55,15 +55,17 @@ def run_build():
         sys.exit(1)
 
     current_version = config.get("version", "1.0.0")
-    print(f"Current version: {current_version}")
+    tag_name = os.environ.get("GITHUB_REF_NAME", "").strip()
+    if tag_name.startswith("v"):
+        new_version = tag_name[1:]
+        print(f"Using GitHub tag version: {new_version}")
+    else:
+        new_version = current_version
+        print(f"No GitHub version tag found; keeping version: {new_version}")
 
-    try:
-        major, minor, patch = map(int, current_version.split('.'))
-        patch += 1
-        new_version = f"{major}.{minor}.{patch}"
-    except ValueError:
-        print(f"Invalid version format in {CONFIG_FILE}. Expected 'major.minor.patch'.")
-        print("Build script requires a 'major.minor.patch' version format in config.json.")
+    version_parts = new_version.split('.')
+    if len(version_parts) != 3 or not all(part.isdigit() for part in version_parts):
+        print(f"Invalid version '{new_version}'. Expected a tag in the format vMAJOR.MINOR.PATCH.")
         sys.exit(1)
 
 
