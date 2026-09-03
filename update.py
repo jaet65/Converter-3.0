@@ -156,8 +156,14 @@ def instalar_actualizacion(zip_path, latest_version, on_status=None):
         app_dir = os.path.dirname(os.path.abspath(sys.argv[0]))
         target_executable = sys.executable if getattr(sys, "frozen", False) else os.path.abspath(sys.argv[0])
         if getattr(sys, "frozen", False):
-            updater_executable = os.path.join(tempfile.gettempdir(), "TrackSIM_Tools_updater.exe")
-            shutil.copy2(sys.executable, updater_executable)
+            updater_dir = tempfile.mkdtemp(prefix="TrackSIM_Tools_updater_")
+            shutil.copytree(
+                app_dir,
+                updater_dir,
+                dirs_exist_ok=True,
+                ignore=shutil.ignore_patterns("*_temp", "*.part"),
+            )
+            updater_executable = os.path.join(updater_dir, os.path.basename(sys.executable))
             command = [updater_executable, "--apply-update", zip_path, latest_version, target_executable]
         else:
             command = [sys.executable, os.path.abspath(sys.argv[0]), "--apply-update", zip_path, latest_version, target_executable]
@@ -209,11 +215,6 @@ def aplicar_actualizacion(zip_path, target_dir, target_executable, on_status=Non
         if on_status:
             on_status("Actualización completada. Reiniciando la aplicación...")
         subprocess.Popen([target_executable], close_fds=True, start_new_session=True)
-        if os.path.basename(sys.executable).lower() == "tracksim_tools_updater.exe":
-            try:
-                os.remove(sys.executable)
-            except OSError:
-                pass
         return True
     except Exception as error:
         if on_status:
