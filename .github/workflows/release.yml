@@ -24,6 +24,7 @@ jobs:
 
         # Esto toma el contenido de dist/TrackSIM_Tools y crea el archivo TrackSIMTools.zip en la raíz de dist/
       - name: Compress Directory to ZIP
+        if: startsWith(github.ref, 'refs/tags/v')
         shell: pwsh
         run: |
           Compress-Archive -Path dist/TrackSIM_Tools -DestinationPath dist/TrackSIMTools.zip
