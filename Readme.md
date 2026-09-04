@@ -1,6 +1,6 @@
 # TrackSIM Tools
 
-**TrackSIM Tools** es una suite completa de escritorio diseñada para gestionar, extraer y convertir reportes generados por simuladores. Con una interfaz moderna y oscura construida sobre `CustomTkinter`, la aplicación centraliza varias herramientas en un solo lugar.
+**TrackSIM Tools.** es una suite completa de escritorio diseñada para gestionar, extraer y convertir reportes generados por simuladores. Con una interfaz moderna y oscura construida sobre `CustomTkinter`, la aplicación centraliza varias herramientas en un solo lugar.
 
 ## Características Principales
 
