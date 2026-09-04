@@ -59,9 +59,13 @@ def run_build():
     if tag_name.startswith("v"):
         new_version = tag_name[1:]
         print(f"Using GitHub tag version: {new_version}")
+        os.environ.pop("TRACKSIM_BOOTSTRAP_BUILD", None)
     else:
         new_version = current_version
         print(f"No GitHub version tag found; keeping version: {new_version}")
+        if os.environ.get("TRACKSIM_FULL_BUILD") != "1":
+            os.environ["TRACKSIM_BOOTSTRAP_BUILD"] = "1"
+            print("Local build mode: generating compact bootstrap installer")
 
     version_parts = new_version.split('.')
     if len(version_parts) != 3 or not all(part.isdigit() for part in version_parts):

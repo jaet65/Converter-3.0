@@ -30,8 +30,8 @@ def obtener_version_local():
             pass
     return "1.0.0"
 
-def verificar_actualizacion_silent():
-    """Consulta la API pública de GitHub para verificar si existe una versión más reciente."""
+def verificar_actualizacion_silent(instalacion_inicial=False):
+    """Consulta GitHub y devuelve la URL de actualización apropiada."""
     url = f"https://api.github.com/repos/{GITHUB_USER}/{REPO_NAME}/releases/latest"
     try:
         req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
@@ -39,20 +39,24 @@ def verificar_actualizacion_silent():
             data = json.loads(response.read().decode())
             latest_version = data["tag_name"].replace("v", "")
             local_version = obtener_version_local()
-            
-            if latest_version != local_version:
-                download_url = None
+            download_url = None
+
+            if not instalacion_inicial and latest_version == local_version:
+                return None, None
+
+            if not instalacion_inicial:
                 incremental_name = f"TrackSIMTools-{local_version}-to-{latest_version}.zip"
                 for asset in data.get("assets", []):
                     if asset["name"] == incremental_name:
                         download_url = asset["browser_download_url"]
                         break
-                if download_url is None:
-                    for asset in data.get("assets", []):
-                        if asset["name"] == ZIP_ASSET_NAME:
-                            download_url = asset["browser_download_url"]
-                            break
-                return latest_version, download_url
+
+            if download_url is None:
+                for asset in data.get("assets", []):
+                    if asset["name"] == ZIP_ASSET_NAME:
+                        download_url = asset["browser_download_url"]
+                        break
+            return latest_version, download_url
     except Exception as e:
         print(f"Error al verificar actualizaciones en GitHub: {e}")
     return None, None

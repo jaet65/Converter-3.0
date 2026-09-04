@@ -54,7 +54,7 @@ Si deseas compilar la aplicación desde el código fuente o hacer modificaciones
     ```bash
     python build.py 
     ```
-    Este comando ejecuta PyInstaller bajo el archivo `convertidor_reportes.spec`, generando la carpeta `dist/` con el nuevo `TrackSIM Tools.exe` listo para distribuir.
+    En un build local, este comando genera un instalador bootstrap compacto en `dist/TrackSIM_Tools/`. Al ejecutarlo, muestra el splash, descarga el último release completo desde GitHub y abre la aplicación instalada. Para generar el paquete completo localmente, usa `set TRACKSIM_FULL_BUILD=1` antes de ejecutar el comando.
 
 ## Automatización y Despliegue (CI/CD)
 

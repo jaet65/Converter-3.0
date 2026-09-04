@@ -59,7 +59,15 @@ def obtener_version_config():
     return "v3.0"  # Fallback si no se encuentra o hay error
 
 
-def crear_splash():
+def es_instalacion_inicial():
+    """Detecta el ejecutable bootstrap generado para builds locales."""
+    if not getattr(sys, "frozen", False):
+        return False
+    config_path = os.path.join(os.path.dirname(sys.executable), "config.json")
+    return not os.path.isfile(config_path)
+
+
+def crear_splash(subtitulo_inicial="Iniciando aplicación..."):
     """
     Crea y muestra un splash screen personalizado usando Tkinter puro con animaciones.
     Sin transiciones fade, sin bordes/líneas naranjas y sin barra de progreso.
@@ -121,7 +129,7 @@ def crear_splash():
 
     # Subtítulo (dinámico con animación de puntos suspensivos)
     sub_text = canvas.create_text(SPLASH_W // 2, 210,
-                                  text="Iniciando aplicación...",
+                                  text=subtitulo_inicial,
                                   fill=SUB_COLOR,
                                   font=("Segoe UI", 10))
 
@@ -134,7 +142,8 @@ def crear_splash():
     anim_state = {
         "after_id_dots": None,
         "dots_count": 0,
-        "closing": False
+        "closing": False,
+        "custom_text": False,
     }
 
     # Animación: Puntos suspensivos del subtítulo
@@ -145,7 +154,8 @@ def crear_splash():
         s["dots_count"] = (s["dots_count"] + 1) % 4
         puntos = "." * s["dots_count"]
         try:
-            canvas.itemconfig(sub_text, text=f"Iniciando aplicación{puntos}")
+            if not s["custom_text"]:
+                canvas.itemconfig(sub_text, text=f"Iniciando aplicación{puntos}")
             s["after_id_dots"] = splash.after(400, animar_puntos)
         except Exception:
             pass
@@ -170,7 +180,46 @@ def crear_splash():
         except Exception:
             pass
 
-    return splash, cerrar_splash
+    def actualizar_subtitulo(texto):
+        try:
+            anim_state["custom_text"] = True
+            canvas.itemconfig(sub_text, text=texto)
+        except Exception:
+            pass
+
+    return splash, cerrar_splash, actualizar_subtitulo
+
+
+def ejecutar_instalacion_inicial():
+    """Descarga e instala el último release desde el splash del bootstrapper."""
+    splash, cerrar_splash, actualizar_subtitulo = crear_splash(
+        "Buscando la última versión..."
+    )
+
+    def informar_estado(mensaje):
+        splash.after(0, actualizar_subtitulo, mensaje)
+
+    def instalar_en_segundo_plano():
+        latest_version, download_url = verificar_actualizacion_silent(
+            instalacion_inicial=True
+        )
+        if not latest_version or not download_url:
+            informar_estado("No se pudo encontrar el release. Revisa tu conexión.")
+            splash.after(5000, cerrar_splash)
+            return
+
+        informar_estado(f"Preparando TrackSIM Tools v{latest_version}...")
+        zip_path = descargar_y_preparar(download_url, latest_version, informar_estado)
+        if not zip_path or not instalar_actualizacion(zip_path, latest_version, informar_estado):
+            informar_estado("No se pudo instalar la última versión.")
+            splash.after(5000, cerrar_splash)
+            return
+
+        informar_estado("Instalación preparada. Iniciando aplicación...")
+        splash.after(1200, cerrar_splash)
+
+    threading.Thread(target=instalar_en_segundo_plano, daemon=True).start()
+    splash.mainloop()
 
 # --- LÓGICA DE ACTUALIZACIÓN EN LA APP PRINCIPAL ---
 def procesar_actualizacion(app):
@@ -342,7 +391,11 @@ if __name__ == "__main__":
     set_taskbar_icon()
 
     # Mostrar splash antes de cargar los módulos pesados
-    splash_win, cerrar_splash = crear_splash()
+    if es_instalacion_inicial():
+        ejecutar_instalacion_inicial()
+        sys.exit(0)
+
+    splash_win, cerrar_splash, _ = crear_splash()
 
     # Importar módulos pesados (DB, reportes, etc.) mientras el splash está visible
     from gui import ConvertidorApp

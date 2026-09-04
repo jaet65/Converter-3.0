@@ -92,9 +92,8 @@ a = Analysis(
         ('logo.png', '.'),
         ('logo_TrackSIM.png', '.'),
         ('Icon.ico', '.'),
-        ('config.json', '.'),  # Vuelve a incluirse para llevar la versión base
         ('config.ini', '.'),
-    ],
+    ] + ([] if os.environ.get('TRACKSIM_BOOTSTRAP_BUILD') == '1' else [('config.json', '.')]),
     hiddenimports=_lazy_imports,
     hookspath=[],
     hooksconfig={},
