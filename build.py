@@ -8,6 +8,7 @@ from datetime import datetime
 
 CONFIG_FILE = "config.json"
 SPEC_FILE = "convertidor_reportes.spec"
+BOOTSTRAP_SPEC_FILE = "bootstrap.spec"
 
 def clean_old_builds():
     """
@@ -65,7 +66,7 @@ def run_build():
         print(f"No GitHub version tag found; keeping version: {new_version}")
         if os.environ.get("TRACKSIM_FULL_BUILD") != "1":
             os.environ["TRACKSIM_BOOTSTRAP_BUILD"] = "1"
-            print("Local build mode: generating compact bootstrap installer")
+            print("Local build mode: generating one-file bootstrap installer")
 
     version_parts = new_version.split('.')
     if len(version_parts) != 3 or not all(part.isdigit() for part in version_parts):
@@ -87,13 +88,17 @@ def run_build():
         sys.exit(1)
 
     print("Starting PyInstaller build...")
+    spec_file = SPEC_FILE
+    if os.environ.get("TRACKSIM_BOOTSTRAP_BUILD") == "1":
+        spec_file = BOOTSTRAP_SPEC_FILE
+
     build_command = [
         sys.executable,
         "-m",
         "PyInstaller",
         "--clean",
         "--noconfirm",
-        SPEC_FILE
+        spec_file
     ]
 
     try:
@@ -105,6 +110,8 @@ def run_build():
         print("--------------------------")
         print("Build successful!")
         print(f"Build version: {new_version} ({build_date})")
+        if spec_file == BOOTSTRAP_SPEC_FILE:
+            print("Bootstrap output: dist/TrackSIM_Tools.exe (one-file)")
 
     except FileNotFoundError:
         print(f"Error: Command '{build_command[0]}' not found. Is Python/PyInstaller in your PATH?")

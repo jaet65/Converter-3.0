@@ -54,7 +54,13 @@ Si deseas compilar la aplicación desde el código fuente o hacer modificaciones
     ```bash
     python build.py 
     ```
-    En un build local, este comando genera un instalador bootstrap compacto en `dist/TrackSIM_Tools/`. Al ejecutarlo, muestra el splash, descarga el último release completo desde GitHub y abre la aplicación instalada. Para generar el paquete completo localmente, usa `set TRACKSIM_FULL_BUILD=1` antes de ejecutar el comando.
+    En un build local, este comando genera un único instalador bootstrap compacto en `dist/TrackSIM_Tools.exe`. Al ejecutarlo, muestra el splash, descarga el último release completo desde GitHub y reemplaza el bootstrap por la aplicación instalada. No se distribuye la carpeta `_internal`. 
+    
+    Para generar el paquete completo localmente, usa antes de ejecutar el comando. Poner en 0 para desactivar
+    $env:TRACKSIM_FULL_BUILD="1"
+
+    Para generar el paquete ligero de instalación, usa antes de generar Build. Poner en 0 para desactivar
+    $env:TRACKSIM_BOOTSTRAP_BUILD="1" 
 
 ## Automatización y Despliegue (CI/CD)
 
